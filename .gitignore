@@ -38,3 +38,7 @@ captures/
 
 # Keystore files
 *.jks
+
+# Other
+*.idea
+*.DS_Store
