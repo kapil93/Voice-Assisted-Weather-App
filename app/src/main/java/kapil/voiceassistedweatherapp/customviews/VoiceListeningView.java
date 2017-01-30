@@ -14,6 +14,8 @@ import kapil.voiceassistedweatherapp.R;
 
 /**
  * Created by kapil on 08-01-2017.
+ *
+ * This is a custom view for visual feedback during the Speech Recognizer is in Listening Mode.
  */
 public class VoiceListeningView extends View {
     private float radius;

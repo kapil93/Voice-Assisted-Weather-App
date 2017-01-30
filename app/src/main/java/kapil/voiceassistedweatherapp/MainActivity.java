@@ -16,7 +16,12 @@ import android.widget.Toast;
 import kapil.voiceassistedweatherapp.customviews.VoiceListeningView;
 import kapil.voiceassistedweatherapp.weather.models.WeatherData;
 
+/**
+ * Created by Kapil on 29/01/17.
+ */
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, ViewDataProvider {
+    private static final String TAG = MainActivity.class.getSimpleName();
     private WeatherPresenter weatherPresenter;
 
     private FloatingActionButton voiceButton;
@@ -144,12 +149,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onRequest() {
         if (!progressDialog.isShowing()) {
-            progressDialog.show();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    progressDialog.show();
+                }
+            });
         }
     }
 
     @Override
-    public void onError(String errorMsg) {
+    public void onError(int errorResId) {
+        final String errorMsg = getApplicationContext().getString(errorResId);
+        Log.i(TAG, errorMsg);
         if (errorMsg.equals(getString(R.string.no_internet))) {
             noInternetSnackbar = Snackbar.make(voiceButton, R.string.no_internet, Snackbar.LENGTH_INDEFINITE);
             noInternetSnackbar.setAction("RETRY", new View.OnClickListener() {
@@ -157,14 +169,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 public void onClick(View v) {
                     weatherPresenter.onRetryButtonClick();
                     if (!progressDialog.isShowing()) {
-                        progressDialog.show();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                progressDialog.show();
+                            }
+                        });
                     }
                 }
             });
             noInternetSnackbar.show();
         } else {
             showViews(false);
-            Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
         }
         if (progressDialog.isShowing()) {
             progressDialog.dismiss();
@@ -181,7 +203,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (progressDialog.isShowing()) {
             progressDialog.dismiss();
         }
-        displayWeatherData(weatherData);
+        if (weatherData != null) {
+            displayWeatherData(weatherData);
+        }
     }
 
     private void displayWeatherData(WeatherData weatherData) {

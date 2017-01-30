@@ -53,20 +53,23 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
         this.viewDataProvider = viewDataProvider;
 
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
-        speechRecognizer.setRecognitionListener(this);
+        setUpSpeechRecognizer();
 
-        createSpeechIntent();
         createWitAiServiceConnection();
         createWeatherServiceConnection();
 
         latestRequestedString = "";
     }
 
-    private void createSpeechIntent() {
-        speechIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        speechIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+    private void setUpSpeechRecognizer() {
+        if (speechRecognizer != null) {
+            speechRecognizer.setRecognitionListener(this);
+
+            speechIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+            speechIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        }
     }
 
     private void createWitAiServiceConnection() {
@@ -106,7 +109,9 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
     }
 
     public void onVoiceButtonClick() {
-        speechRecognizer.startListening(speechIntent);
+        if (speechRecognizer != null) {
+            speechRecognizer.startListening(speechIntent);
+        }
     }
 
     public void onRetryButtonClick() {
@@ -119,7 +124,9 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
     @Override
     public void onReadyForSpeech(Bundle params) {
         Log.i(SPEECH_TAG, "onReady");
-        viewDataProvider.onVoiceStringUpdate(context.getString(R.string.voice_listening));
+        if (context != null) {
+            viewDataProvider.onVoiceStringUpdate(context.getString(R.string.voice_listening));
+        }
         viewDataProvider.onListeningStateChange(true);
     }
 
@@ -147,7 +154,9 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
     @Override
     public void onError(int error) {
         Log.i(SPEECH_TAG, "onError: " + error);
-        viewDataProvider.onVoiceStringUpdate(context.getString(R.string.voice_button_promt));
+        if (context != null) {
+            viewDataProvider.onVoiceStringUpdate(context.getString(R.string.voice_button_promt));
+        }
         viewDataProvider.onListeningStateChange(false);
     }
 
@@ -185,7 +194,7 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
                 analyzeWitAiResponse(witAiResponse);
                 break;
             case OnWitAiResponseListener.FAILURE:
-                viewDataProvider.onError(context.getString(R.string.no_internet));
+                viewDataProvider.onError(R.string.no_internet);
                 break;
         }
     }
@@ -197,21 +206,31 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
                 analyzeWeatherData(weatherData);
                 break;
             case OnWitAiResponseListener.FAILURE:
-                viewDataProvider.onError(context.getString(R.string.no_internet));
+                viewDataProvider.onError(R.string.no_internet);
                 break;
         }
     }
 
+    /**
+     * This Method analyzes the response from wit.ai, checks for null values and sends the
+     * appropriate error message to MainActivity in case of errors.
+     *
+     * If there are no errors, it takes the location from wit.ai and feeds it to WeatherService
+     * which in turn tells the weather.
+     *
+     * @param witAiResponse
+     */
+
     private void analyzeWitAiResponse(WitAiResponse witAiResponse) {
         if (witAiResponse == null) {
-            viewDataProvider.onError(context.getString(R.string.null_wit_ai_response));
+            viewDataProvider.onError(R.string.null_wit_ai_response);
         } else {
             if (witAiResponse.getEntities().getIntent() == null) {
-                viewDataProvider.onError(context.getString(R.string.weather_intent_not_found));
+                viewDataProvider.onError(R.string.weather_intent_not_found);
             } else if (witAiResponse.getEntities().getIntent().get(0).getValue().equals("weather")) {
                 if (witAiResponse.getEntities().getLocation() == null) {
                     // TODO: Show weather in current location if location not found in the string
-                    viewDataProvider.onError(context.getString(R.string.location_not_found));
+                    viewDataProvider.onError(R.string.location_not_found);
                 } else {
                     String location = witAiResponse.getEntities().getLocation().get(0).getValue();
                     if (weatherServiceInputProvider != null) {
@@ -222,15 +241,27 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
         }
     }
 
+    /**
+     * This method analyzes the response from the WeatherService, checks for null values and sends
+     * the appropriate error message to MainActivity in case of errors.
+     *
+     * If there are no errors, it feeds the WeatherData to the MainActivity which in turn displays
+     * it on the screen.
+     *
+     * @param weatherData
+     */
+
     private void analyzeWeatherData(WeatherData weatherData) {
         if (weatherData == null) {
-            viewDataProvider.onError(context.getString(R.string.place_unrecognized));
+            viewDataProvider.onError(R.string.place_unrecognized);
         } else {
             viewDataProvider.onWeatherDataReceived(weatherData);
         }
     }
 
     public void destroy() {
-        speechRecognizer.destroy();
+        if (speechRecognizer != null) {
+            speechRecognizer.destroy();
+        }
     }
 }

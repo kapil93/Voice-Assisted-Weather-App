@@ -20,7 +20,7 @@ public interface ViewDataProvider {
 
     void onRequest();
 
-    void onError(String errorMsg);
+    void onError(int errorResId);
 
     void onWeatherDataReceived(WeatherData weatherData);
 }
