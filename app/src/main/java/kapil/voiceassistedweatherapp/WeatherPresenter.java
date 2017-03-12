@@ -1,5 +1,6 @@
 package kapil.voiceassistedweatherapp;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -13,6 +14,8 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Locale;
+
+import javax.inject.Inject;
 
 import kapil.voiceassistedweatherapp.weather.OnWeatherDataReceivedListener;
 import kapil.voiceassistedweatherapp.weather.WeatherService;
@@ -35,7 +38,8 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
     private Context context;
     private ViewDataProvider viewDataProvider;
 
-    private SpeechRecognizer speechRecognizer;
+    @Inject
+    public SpeechRecognizer speechRecognizer;
     private Intent speechIntent;
 
     private Intent witAiServiceIntent;
@@ -48,11 +52,12 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
 
     private String latestRequestedString;
 
-    public WeatherPresenter(Context context, ViewDataProvider viewDataProvider) {
-        this.context = context;
+    public WeatherPresenter(Activity activity, ViewDataProvider viewDataProvider) {
+        context = activity;
         this.viewDataProvider = viewDataProvider;
 
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
+        ((VoiceAssistedWeatherApp) activity.getApplication()).getAppComponent().inject(this);
+
         setUpSpeechRecognizer();
 
         createWitAiServiceConnection();
