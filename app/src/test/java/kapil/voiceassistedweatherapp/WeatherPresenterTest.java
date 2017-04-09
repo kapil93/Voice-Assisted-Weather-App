@@ -1,5 +1,6 @@
 package kapil.voiceassistedweatherapp;
 
+import android.content.Context;
 import android.os.Bundle;
 
 import org.junit.After;
@@ -11,6 +12,8 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.inject.Inject;
 
 import kapil.voiceassistedweatherapp.weather.OnWeatherDataReceivedListener;
 import kapil.voiceassistedweatherapp.weather.models.WeatherData;
@@ -29,13 +32,17 @@ public class WeatherPresenterTest {
     @Mock
     private ViewDataProvider viewDataProvider;
 
+    @Mock
+    private Context context;
+
     private WeatherPresenter weatherPresenter;
     private WitAiResponse witAiResponse;
     private WeatherData weatherData;
 
     @Before
     public void setUp() throws Exception {
-        weatherPresenter = new WeatherPresenter(null, viewDataProvider);
+        weatherPresenter = new WeatherPresenter(context, null);
+        weatherPresenter.setViewDataProvider(viewDataProvider);
     }
 
     @Test()
