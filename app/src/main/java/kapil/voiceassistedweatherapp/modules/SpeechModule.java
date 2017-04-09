@@ -1,6 +1,5 @@
 package kapil.voiceassistedweatherapp.modules;
 
-import android.content.Context;
 import android.speech.SpeechRecognizer;
 
 import javax.inject.Singleton;
