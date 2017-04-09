@@ -3,6 +3,7 @@ package kapil.voiceassistedweatherapp;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.speech.SpeechRecognizer;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -13,6 +14,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import javax.inject.Inject;
+
 import kapil.voiceassistedweatherapp.customviews.VoiceListeningView;
 import kapil.voiceassistedweatherapp.weather.models.WeatherData;
 
@@ -22,7 +25,8 @@ import kapil.voiceassistedweatherapp.weather.models.WeatherData;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, ViewDataProvider {
     private static final String TAG = MainActivity.class.getSimpleName();
-    private WeatherPresenter weatherPresenter;
+
+    @Inject public WeatherPresenter weatherPresenter;
 
     private FloatingActionButton voiceButton;
     private TextView voiceOutput;
@@ -56,7 +60,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        weatherPresenter = new WeatherPresenter(this, this);
+        //weatherPresenter = new WeatherPresenter(this, this);
+        ((VoiceAssistedWeatherApp) getApplication()).getAppComponent().inject(this);
+
+        weatherPresenter.setViewDataProvider(this);
 
         initializeViews();
         showViews(false);
