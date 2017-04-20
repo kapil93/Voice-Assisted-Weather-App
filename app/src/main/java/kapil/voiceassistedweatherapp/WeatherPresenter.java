@@ -1,11 +1,8 @@
 package kapil.voiceassistedweatherapp;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -14,54 +11,41 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.Locale;
 
+import javax.inject.Inject;
+
 import kapil.voiceassistedweatherapp.weather.OnWeatherDataReceivedListener;
-import kapil.voiceassistedweatherapp.weather.WeatherService;
-import kapil.voiceassistedweatherapp.weather.WeatherServiceBinder;
-import kapil.voiceassistedweatherapp.weather.WeatherServiceInputProvider;
-import kapil.voiceassistedweatherapp.weather.models.WeatherData;
-import kapil.voiceassistedweatherapp.witai.OnWitAiResponseListener;
-import kapil.voiceassistedweatherapp.witai.WitAiService;
-import kapil.voiceassistedweatherapp.witai.WitAiServiceBinder;
-import kapil.voiceassistedweatherapp.witai.WitAiServiceInputProvider;
-import kapil.voiceassistedweatherapp.witai.models.WitAiResponse;
+import kapil.voiceassistedweatherapp.weather.WeatherDataProvider;
+import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 
 /**
- * Created by Kapil on 29/01/17.
+ * WeatherPresenter (Presenter) sends appropriate request to {@link WeatherDataProvider} using the input
+ * provided by {@link WeatherActivity} (View) and sends back the result obtained from WeatherDataProvider.
  */
 
-public class WeatherPresenter implements RecognitionListener, OnWitAiResponseListener, OnWeatherDataReceivedListener {
+public class WeatherPresenter implements WeatherContract.Presenter, RecognitionListener, OnWeatherDataReceivedListener {
     private static final String SPEECH_TAG = "Speech Recognition";
 
     private Context context;
-    private ViewDataProvider viewDataProvider;
+    private WeatherContract.View view;
 
-    private SpeechRecognizer speechRecognizer;
+    @Inject SpeechRecognizer speechRecognizer;
     private Intent speechIntent;
 
-    private Intent witAiServiceIntent;
-    private WitAiServiceInputProvider witAiServiceInputProvider;
-    private ServiceConnection witAiServiceConnection;
-
-    private Intent weatherServiceIntent;
-    private WeatherServiceInputProvider weatherServiceInputProvider;
-    private ServiceConnection weatherServiceConnection;
+    @Inject WeatherDataProvider weatherDataProvider;
 
     private String latestRequestedString;
 
-    public WeatherPresenter(Context context, ViewDataProvider viewDataProvider) {
+    @Inject WeatherPresenter(Context context, WeatherContract.View view) {
         this.context = context;
-        this.viewDataProvider = viewDataProvider;
+        this.view = view;
 
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
         setUpSpeechRecognizer();
-
-        createWitAiServiceConnection();
-        createWeatherServiceConnection();
+        initializeWeatherService();
 
         latestRequestedString = "";
     }
 
-    private void setUpSpeechRecognizer() {
+    @Inject void setUpSpeechRecognizer() {
         if (speechRecognizer != null) {
             speechRecognizer.setRecognitionListener(this);
 
@@ -72,52 +56,24 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
         }
     }
 
-    private void createWitAiServiceConnection() {
-        witAiServiceIntent = new Intent(context, WitAiService.class);
-        witAiServiceConnection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                WitAiServiceBinder binder = (WitAiServiceBinder) iBinder;
-                witAiServiceInputProvider = binder.getWitAiServiceInputProvider();
-                witAiServiceInputProvider.setOnWitAiResponseListener(WeatherPresenter.this);
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName componentName) {
-
-            }
-        };
-        viewDataProvider.onWitAiServiceInitialized(witAiServiceIntent, witAiServiceConnection);
+    @Inject void initializeWeatherService() {
+        if (weatherDataProvider != null) {
+            weatherDataProvider.setOnWeatherDataReceivedListener(this);
+        }
     }
 
-    private void createWeatherServiceConnection() {
-        weatherServiceIntent = new Intent(context, WeatherService.class);
-        weatherServiceConnection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                WeatherServiceBinder binder = (WeatherServiceBinder) iBinder;
-                weatherServiceInputProvider = binder.getWeatherServiceInputProvider();
-                weatherServiceInputProvider.setOnWeatherDataReceivedListener(WeatherPresenter.this);
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName componentName) {
-
-            }
-        };
-        viewDataProvider.onWeatherServiceInitialized(weatherServiceIntent, weatherServiceConnection);
-    }
-
-    public void onVoiceButtonClick() {
+    @Override
+    public void triggerSpeechRecognizer() {
         if (speechRecognizer != null) {
             speechRecognizer.startListening(speechIntent);
         }
     }
 
-    public void onRetryButtonClick() {
-        if (witAiServiceInputProvider != null) {
-            viewDataProvider.onRequest();
-            witAiServiceInputProvider.requestIntentInfo(latestRequestedString);
+    @Override
+    public void retryDataFetch() {
+        if (weatherDataProvider != null) {
+            view.showLoader(true);
+            weatherDataProvider.requestWeatherData(latestRequestedString);
         }
     }
 
@@ -125,9 +81,9 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
     public void onReadyForSpeech(Bundle params) {
         Log.i(SPEECH_TAG, "onReady");
         if (context != null) {
-            viewDataProvider.onVoiceStringUpdate(context.getString(R.string.voice_listening));
+            view.setVoiceString(context.getString(R.string.voice_listening));
         }
-        viewDataProvider.onListeningStateChange(true);
+        view.setVoiceListeningAnimationEnabled(true);
     }
 
     @Override
@@ -148,38 +104,38 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
     @Override
     public void onEndOfSpeech() {
         Log.i(SPEECH_TAG, "onEnd");
-        viewDataProvider.onListeningStateChange(false);
+        view.setVoiceListeningAnimationEnabled(false);
     }
 
     @Override
     public void onError(int error) {
-        Log.i(SPEECH_TAG, "onError: " + error);
+        Log.i(SPEECH_TAG, "showToastErrorMessage: " + error);
         if (context != null) {
-            viewDataProvider.onVoiceStringUpdate(context.getString(R.string.voice_button_promt));
+            view.setVoiceString(context.getString(R.string.voice_button_promt));
         }
-        viewDataProvider.onListeningStateChange(false);
+        view.setVoiceListeningAnimationEnabled(false);
     }
 
     @Override
     public void onResults(Bundle results) {
         ArrayList resultList = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        String bestResult = (String) resultList.get(0);
+        String bestResult = (String) (resultList != null ? resultList.get(0) : null);
         Log.i(SPEECH_TAG, "onResult: " + bestResult);
-        viewDataProvider.onVoiceStringUpdate(bestResult);
+        view.setVoiceString(bestResult);
         latestRequestedString = bestResult;
 
-        if (witAiServiceInputProvider != null) {
-            viewDataProvider.onRequest();
-            witAiServiceInputProvider.requestIntentInfo(bestResult);
+        if (weatherDataProvider != null) {
+            view.showLoader(true);
+            weatherDataProvider.requestWeatherData(bestResult);
         }
     }
 
     @Override
     public void onPartialResults(Bundle partialResults) {
         ArrayList resultList = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        String bestResult = (String) resultList.get(0);
+        String bestResult = (String) (resultList != null ? resultList.get(0) : null);
         Log.i(SPEECH_TAG, "onPartialResult: " + bestResult);
-        viewDataProvider.onVoiceStringUpdate(String.format(bestResult + "%s", "..."));
+        view.setVoiceString(String.format(bestResult + "%s", "..."));
     }
 
     @Override
@@ -188,78 +144,42 @@ public class WeatherPresenter implements RecognitionListener, OnWitAiResponseLis
     }
 
     @Override
-    public void onWitAiResponse(WitAiResponse witAiResponse, @WitAiResponseType int responseType) {
-        switch (responseType) {
-            case OnWitAiResponseListener.SUCCESS:
-                analyzeWitAiResponse(witAiResponse);
-                break;
-            case OnWitAiResponseListener.FAILURE:
-                viewDataProvider.onError(R.string.no_internet);
-                break;
-        }
+    public void onWeatherDataReceived(WeatherData weatherData) {
+        view.showLoader(false);
+        view.showNoInternetSnackbar(false);
+        view.showWeatherData(weatherData);
+        view.showWeatherDataViewContainer(true);
     }
 
     @Override
-    public void onWeatherDataReceived(WeatherData weatherData, @WeatherApiResponseType int responseType) {
-        switch (responseType) {
-            case OnWitAiResponseListener.SUCCESS:
-                analyzeWeatherData(weatherData);
+    public void onFailure(@WeatherResponseFailureType int failureType) {
+        view.showLoader(false);
+        int resId = 0;
+        switch (failureType) {
+            case NO_INTERNET:
+                resId = R.string.no_internet;
+                view.showNoInternetSnackbar(true);
                 break;
-            case OnWitAiResponseListener.FAILURE:
-                viewDataProvider.onError(R.string.no_internet);
+            case GPS_UNAVAILABLE:
+                resId = R.string.gps_unavailable;
+                break;
+            case WIT_AI_NULL_RESPONSE:
+                resId = R.string.null_wit_ai_response;
+                break;
+            case WEATHER_INTENT_NOT_FOUND:
+                resId = R.string.weather_intent_not_found;
+                break;
+            case PLACE_UNRECOGNIZED:
+                resId = R.string.place_unrecognized;
                 break;
         }
-    }
-
-    /**
-     * This Method analyzes the response from wit.ai, checks for null values and sends the
-     * appropriate error message to MainActivity in case of errors.
-     *
-     * If there are no errors, it takes the location from wit.ai and feeds it to WeatherService
-     * which in turn tells the weather.
-     *
-     * @param witAiResponse
-     */
-
-    private void analyzeWitAiResponse(WitAiResponse witAiResponse) {
-        if (witAiResponse == null) {
-            viewDataProvider.onError(R.string.null_wit_ai_response);
-        } else {
-            if (witAiResponse.getEntities().getIntent() == null) {
-                viewDataProvider.onError(R.string.weather_intent_not_found);
-            } else if (witAiResponse.getEntities().getIntent().get(0).getValue().equals("weather")) {
-                if (witAiResponse.getEntities().getLocation() == null) {
-                    // TODO: Show weather in current location if location not found in the string
-                    viewDataProvider.onError(R.string.location_not_found);
-                } else {
-                    String location = witAiResponse.getEntities().getLocation().get(0).getValue();
-                    if (weatherServiceInputProvider != null) {
-                        weatherServiceInputProvider.getWeatherInfo(location);
-                    }
-                }
-            }
+        if (resId != R.string.no_internet) {
+            view.showToastErrorMessage(resId);
+            view.showWeatherDataViewContainer(false);
         }
     }
 
-    /**
-     * This method analyzes the response from the WeatherService, checks for null values and sends
-     * the appropriate error message to MainActivity in case of errors.
-     *
-     * If there are no errors, it feeds the WeatherData to the MainActivity which in turn displays
-     * it on the screen.
-     *
-     * @param weatherData
-     */
-
-    private void analyzeWeatherData(WeatherData weatherData) {
-        if (weatherData == null) {
-            viewDataProvider.onError(R.string.place_unrecognized);
-        } else {
-            viewDataProvider.onWeatherDataReceived(weatherData);
-        }
-    }
-
-    public void destroy() {
+    void destroy() {
         if (speechRecognizer != null) {
             speechRecognizer.destroy();
         }

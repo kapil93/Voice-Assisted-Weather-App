@@ -1,5 +1,5 @@
 
-package kapil.voiceassistedweatherapp.weather.models;
+package kapil.voiceassistedweatherapp.weather.models.weather;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;

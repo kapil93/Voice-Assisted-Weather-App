@@ -1,5 +1,5 @@
 
-package kapil.voiceassistedweatherapp.witai.models;
+package kapil.voiceassistedweatherapp.weather.models.witai;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -15,10 +15,9 @@ import java.util.Map;
 @JsonPropertyOrder({
     "confidence",
     "type",
-    "value",
-    "suggested"
+    "value"
 })
-public class Location {
+public class Intent {
 
     @JsonProperty("confidence")
     private Double confidence;
@@ -26,8 +25,6 @@ public class Location {
     private String type;
     @JsonProperty("value")
     private String value;
-    @JsonProperty("suggested")
-    private Boolean suggested;
     @JsonIgnore
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
@@ -59,16 +56,6 @@ public class Location {
     @JsonProperty("value")
     public void setValue(String value) {
         this.value = value;
-    }
-
-    @JsonProperty("suggested")
-    public Boolean getSuggested() {
-        return suggested;
-    }
-
-    @JsonProperty("suggested")
-    public void setSuggested(Boolean suggested) {
-        this.suggested = suggested;
     }
 
     @JsonAnyGetter

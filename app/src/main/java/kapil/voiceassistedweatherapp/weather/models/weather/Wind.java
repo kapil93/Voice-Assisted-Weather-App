@@ -1,5 +1,5 @@
 
-package kapil.voiceassistedweatherapp.witai.models;
+package kapil.voiceassistedweatherapp.weather.models.weather;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -9,41 +9,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "intent",
-    "location"
+    "speed",
+    "deg"
 })
-public class Entities {
+public class Wind {
 
-    @JsonProperty("intent")
-    private List<Intent> intent = null;
-    @JsonProperty("location")
-    private List<Location> location = null;
+    @JsonProperty("speed")
+    private Double speed;
+    @JsonProperty("deg")
+    private Integer deg;
     @JsonIgnore
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
-    @JsonProperty("intent")
-    public List<Intent> getIntent() {
-        return intent;
+    @JsonProperty("speed")
+    public Double getSpeed() {
+        return speed;
     }
 
-    @JsonProperty("intent")
-    public void setIntent(List<Intent> intent) {
-        this.intent = intent;
+    @JsonProperty("speed")
+    public void setSpeed(Double speed) {
+        this.speed = speed;
     }
 
-    @JsonProperty("location")
-    public List<Location> getLocation() {
-        return location;
+    @JsonProperty("deg")
+    public Integer getDeg() {
+        return deg;
     }
 
-    @JsonProperty("location")
-    public void setLocation(List<Location> location) {
-        this.location = location;
+    @JsonProperty("deg")
+    public void setDeg(Integer deg) {
+        this.deg = deg;
     }
 
     @JsonAnyGetter

@@ -1,5 +1,5 @@
 
-package kapil.voiceassistedweatherapp.weather.models;
+package kapil.voiceassistedweatherapp.weather.models.witai;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -9,27 +9,41 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "all"
+    "intent",
+    "location"
 })
-public class Clouds {
+public class Entities {
 
-    @JsonProperty("all")
-    private Integer all;
+    @JsonProperty("intent")
+    private List<Intent> intent = null;
+    @JsonProperty("location")
+    private List<Location> location = null;
     @JsonIgnore
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
-    @JsonProperty("all")
-    public Integer getAll() {
-        return all;
+    @JsonProperty("intent")
+    public List<Intent> getIntent() {
+        return intent;
     }
 
-    @JsonProperty("all")
-    public void setAll(Integer all) {
-        this.all = all;
+    @JsonProperty("intent")
+    public void setIntent(List<Intent> intent) {
+        this.intent = intent;
+    }
+
+    @JsonProperty("location")
+    public List<Location> getLocation() {
+        return location;
+    }
+
+    @JsonProperty("location")
+    public void setLocation(List<Location> location) {
+        this.location = location;
     }
 
     @JsonAnyGetter

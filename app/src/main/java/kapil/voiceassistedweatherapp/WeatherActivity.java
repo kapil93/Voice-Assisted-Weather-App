@@ -1,8 +1,6 @@
 package kapil.voiceassistedweatherapp;
 
 import android.app.ProgressDialog;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -13,16 +11,21 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import kapil.voiceassistedweatherapp.customviews.VoiceListeningView;
-import kapil.voiceassistedweatherapp.weather.models.WeatherData;
+import javax.inject.Inject;
+
+import kapil.voiceassistedweatherapp.app.VoiceAssistedWeatherApp;
+import kapil.voiceassistedweatherapp.weather.WeatherDataProviderModule;
+import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 
 /**
- * Created by Kapil on 29/01/17.
+ * WeatherActivity (View) sends appropriate callbacks regarding user interaction with the screen to
+ * {@link WeatherPresenter} (Presenter) and displays information sent by it.
  */
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, ViewDataProvider {
-    private static final String TAG = MainActivity.class.getSimpleName();
-    private WeatherPresenter weatherPresenter;
+public class WeatherActivity extends AppCompatActivity implements WeatherContract.View, View.OnClickListener {
+    private static final String TAG = WeatherActivity.class.getSimpleName();
+
+    @Inject WeatherPresenter weatherPresenter;
 
     private FloatingActionButton voiceButton;
     private TextView voiceOutput;
@@ -45,24 +48,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Snackbar noInternetSnackbar;
     private ProgressDialog progressDialog;
 
-    private Intent witAiServiceIntent;
-    private ServiceConnection witAiServiceConnection;
-
-    private Intent weatherServiceIntent;
-    private ServiceConnection weatherServiceConnection;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_weather);
 
-        weatherPresenter = new WeatherPresenter(this, this);
+        DaggerWeatherComponent.builder()
+                .appComponent(((VoiceAssistedWeatherApp) getApplication()).getAppComponent())
+                .weatherPresenterModule(new WeatherPresenterModule(this))
+                .weatherDataProviderModule(new WeatherDataProviderModule())
+                .build()
+                .inject(this);
 
         initializeViews();
         showViews(false);
         setClickListeners();
 
-        progressDialog = new ProgressDialog(MainActivity.this);
+        progressDialog = new ProgressDialog(WeatherActivity.this);
         progressDialog.setMessage(getString(R.string.weather_progress_message));
         progressDialog.setCancelable(false);
     }
@@ -87,6 +89,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         windSpeedIcon = (ImageView) findViewById(R.id.wind_speed_icon);
     }
 
+    /**
+     * This method toggles between showing weather data and hiding it. It also hides suggestion text if
+     * weather data is shown and shows suggestion text if weather data is hidden.
+     *
+     * @param show: shows weather data and hides suggestion text if true and vice versa.
+     */
+
     private void showViews(boolean show) {
         int visibility = show ? View.VISIBLE : View.GONE;
         place.setVisibility(visibility);
@@ -102,7 +111,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         windSpeed.setVisibility(visibility);
         windSpeedIcon.setVisibility(visibility);
 
-        suggestionText.setVisibility(visibility == View.VISIBLE ? View.GONE : View.VISIBLE);
+        suggestionText.setVisibility(show ? View.GONE : View.VISIBLE);
     }
 
     private void setClickListeners() {
@@ -113,102 +122,97 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.voice_button:
-                weatherPresenter.onVoiceButtonClick();
+                weatherPresenter.triggerSpeechRecognizer();
                 break;
         }
     }
 
     @Override
-    public void onWitAiServiceInitialized(Intent witAiServiceIntent, ServiceConnection witAiServiceConnection) {
-        this.witAiServiceIntent = witAiServiceIntent;
-        this.witAiServiceConnection = witAiServiceConnection;
-
-        startService(witAiServiceIntent);
-        bindService(witAiServiceIntent, witAiServiceConnection, BIND_AUTO_CREATE);
-    }
-
-    @Override
-    public void onWeatherServiceInitialized(Intent weatherServiceIntent, ServiceConnection weatherServiceConnection) {
-        this.weatherServiceIntent = weatherServiceIntent;
-        this.weatherServiceConnection = weatherServiceConnection;
-
-        startService(weatherServiceIntent);
-        bindService(weatherServiceIntent, weatherServiceConnection, BIND_AUTO_CREATE);
-    }
-
-    @Override
-    public void onVoiceStringUpdate(String string) {
+    public void setVoiceString(String string) {
         voiceOutput.setText(string);
     }
 
     @Override
-    public void onListeningStateChange(boolean isListening) {
-        voiceListeningView.setVisibility(isListening ? View.VISIBLE : View.GONE);
-    }
-
-    @Override
-    public void onRequest() {
-        if (!progressDialog.isShowing()) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    progressDialog.show();
-                }
-            });
+    public void setVoiceListeningAnimationEnabled(boolean enabled) {
+        if (enabled) {
+            voiceListeningView.setVisibility(View.VISIBLE);
+            voiceListeningView.startAnim();
+        } else {
+            voiceListeningView.setVisibility(View.GONE);
+            voiceListeningView.endAnim();
         }
     }
 
     @Override
-    public void onError(int errorResId) {
+    public void showWeatherDataViewContainer(boolean show) {
+        showViews(show);
+    }
+
+    @Override
+    public void showLoader(boolean show) {
+        if (show) {
+            if (!progressDialog.isShowing()) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressDialog.show();
+                    }
+                });
+            }
+        } else {
+            if (progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+        }
+    }
+
+    @Override
+    public void showToastErrorMessage(int errorResId) {
         final String errorMsg = getApplicationContext().getString(errorResId);
         Log.i(TAG, errorMsg);
-        if (errorMsg.equals(getString(R.string.no_internet))) {
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(WeatherActivity.this, errorMsg, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    @Override
+    public void showWeatherData(WeatherData weatherData) {
+        if (weatherData != null) {
+            setWeatherData(weatherData);
+        }
+    }
+
+    @Override
+    public void showNoInternetSnackbar(boolean show) {
+        if (show) {
             noInternetSnackbar = Snackbar.make(voiceButton, R.string.no_internet, Snackbar.LENGTH_INDEFINITE);
             noInternetSnackbar.setAction("RETRY", new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    weatherPresenter.onRetryButtonClick();
-                    if (!progressDialog.isShowing()) {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                progressDialog.show();
-                            }
-                        });
-                    }
+                    weatherPresenter.retryDataFetch();
                 }
             });
             noInternetSnackbar.show();
         } else {
-            showViews(false);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_SHORT).show();
+            if (noInternetSnackbar != null) {
+                if (noInternetSnackbar.isShown()) {
+                    noInternetSnackbar.dismiss();
                 }
-            });
-        }
-        if (progressDialog.isShowing()) {
-            progressDialog.dismiss();
-        }
-    }
-
-    @Override
-    public void onWeatherDataReceived(WeatherData weatherData) {
-        if (noInternetSnackbar != null) {
-            if (noInternetSnackbar.isShown()) {
-                noInternetSnackbar.dismiss();
             }
         }
-        if (progressDialog.isShowing()) {
-            progressDialog.dismiss();
-        }
-        if (weatherData != null) {
-            displayWeatherData(weatherData);
-        }
     }
 
-    private void displayWeatherData(WeatherData weatherData) {
+    /**
+     * Sets weather data into appropriate views.
+     *
+     * @param weatherData: Response body obtained from open weather api.
+     */
+
+    private void setWeatherData(WeatherData weatherData) {
         place.setText(weatherData.getName() + ", " + weatherData.getSys().getCountry());
         setWeatherIcon(weatherData.getWeather().get(0).getIcon());
         temperature.setText(String.format(String.valueOf(Math.round(weatherData.getMain().getTemp())) + "%c", '°'));
@@ -217,12 +221,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         humidity.setText(String.format(weatherData.getMain().getHumidity() + "%s", " %"));
         pressure.setText(String.format(weatherData.getMain().getPressure() + "%s", " hPa"));
         windSpeed.setText(String.format(weatherData.getWind().getSpeed() + "%s", " mps"));
-        showViews(true);
     }
 
-    private void setWeatherIcon(String icon) {
+    /**
+     * Sets appropriate icon into image view according to the Icon ID.
+     *
+     * @param iconId: Icon ID obtained from open weather api.
+     */
+
+    private void setWeatherIcon(String iconId) {
         int iconResourceId;
-        switch (icon) {
+        switch (iconId) {
             case "01d":
                 iconResourceId = R.drawable._01d;
                 break;
@@ -275,17 +284,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         weatherPresenter.destroy();
-
-        if (weatherServiceIntent != null) {
-            unbindService(weatherServiceConnection);
-            stopService(weatherServiceIntent);
-        }
-
-        if (witAiServiceIntent != null) {
-            unbindService(witAiServiceConnection);
-            stopService(witAiServiceIntent);
-        }
-
         super.onDestroy();
     }
 }

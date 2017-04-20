@@ -1,4 +1,4 @@
-package kapil.voiceassistedweatherapp.customviews;
+package kapil.voiceassistedweatherapp;
 
 import android.animation.ValueAnimator;
 import android.content.Context;
@@ -10,20 +10,14 @@ import android.util.TypedValue;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 
-import kapil.voiceassistedweatherapp.R;
-
 /**
- * Created by kapil on 08-01-2017.
- *
- * This is a custom view for visual feedback during the Speech Recognizer is in Listening Mode.
+ * This is a custom view for visual feedback during the SpeechRecognizer is in Listening Mode.
  */
 public class VoiceListeningView extends View {
     private float radius;
-    private float circleAction;
 
     private Paint paint;
     private ValueAnimator radiusAnimator;
-    private int animationDuration;
 
     public VoiceListeningView(Context context) {
         super(context);
@@ -41,10 +35,10 @@ public class VoiceListeningView extends View {
     }
 
     private void init() {
-        radius = pxToDp(30);
-        circleAction = 20;       // px
+        radius = DpToPx(30);                  // dp
+        float circleAction = DpToPx(10);      // dp
 
-        animationDuration = 800;        // milliseconds
+        int animationDuration = 800;          // milliseconds
 
         paint = new Paint();
         paint.setAntiAlias(true);
@@ -75,8 +69,8 @@ public class VoiceListeningView extends View {
         }
     }
 
-    public float pxToDp(float px) {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, px, getResources().getDisplayMetrics());
+    public float DpToPx(float dp) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
 
     public void startAnim() {
@@ -85,31 +79,9 @@ public class VoiceListeningView extends View {
         }
     }
 
-    public void pauseAnim() {
-        if (radiusAnimator.isRunning()) {
-            radiusAnimator.pause();
-        }
-    }
-
     public void endAnim() {
         if (radiusAnimator.isRunning()) {
             radiusAnimator.end();
-        }
-    }
-
-    @Override
-    public void setVisibility(int visibility) {
-        super.setVisibility(visibility);
-        switch (visibility) {
-            case VISIBLE:
-                startAnim();
-                break;
-            case INVISIBLE:
-                pauseAnim();
-                break;
-            case GONE:
-                endAnim();
-                break;
         }
     }
 }
