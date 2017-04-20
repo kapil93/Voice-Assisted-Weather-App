@@ -4,9 +4,9 @@
     <string name="voice_listening">Listening&#8230;</string>
     <string name="suggestion_text">Hello, You can ask me the weather in any city or place, for example:\n\n\'Tell me the weather in Connaught Place, Delhi, India\'</string>
     <string name="weather_intent_not_found">Weather intent not found</string>
-    <string name="location_not_found">Location not detected</string>
     <string name="place_unrecognized">Place not recognized</string>
     <string name="no_internet">No Internet</string>
     <string name="weather_progress_message">Fetching weather details&#8230;</string>
     <string name="null_wit_ai_response">Sorry! didn\'t get it</string>
+    <string name="gps_unavailable">GPS Unavailable</string>
 </resources>
