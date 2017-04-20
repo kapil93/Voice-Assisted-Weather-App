@@ -19,7 +19,7 @@ import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 
 /**
  * WeatherPresenter (Presenter) sends appropriate request to {@link WeatherDataProvider} using the input
- * provided by {@link MainActivity} (View) and sends back the result obtained from WeatherDataProvider.
+ * provided by {@link WeatherActivity} (View) and sends back the result obtained from WeatherDataProvider.
  */
 
 public class WeatherPresenter implements WeatherContract.Presenter, RecognitionListener, OnWeatherDataReceivedListener {
@@ -35,8 +35,9 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
 
     private String latestRequestedString;
 
-    @Inject WeatherPresenter(Context context) {
+    @Inject WeatherPresenter(Context context, WeatherContract.View view) {
         this.context = context;
+        this.view = view;
 
         setUpSpeechRecognizer();
         initializeWeatherService();
@@ -176,10 +177,6 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
             view.showToastErrorMessage(resId);
             view.showWeatherDataViewContainer(false);
         }
-    }
-
-    public void setView(WeatherContract.View view) {
-        this.view = view;
     }
 
     void destroy() {

@@ -1,4 +1,4 @@
-package kapil.voiceassistedweatherapp.modules;
+package kapil.voiceassistedweatherapp.app;
 
 import android.content.Context;
 
@@ -8,20 +8,20 @@ import dagger.Module;
 import dagger.Provides;
 
 /**
- * Created by witworks on 18/04/17.
+ * This module is used to provide Context throughout the application.
  */
 
 @Module
-public class ApplicationModule {
+class ApplicationModule {
     private final Context context;
 
-    public ApplicationModule(Context context) {
+    ApplicationModule(Context context) {
         this.context = context;
     }
 
     @Provides
     @Singleton
-    public Context provideApplicationContext() {
+    Context provideApplicationContext() {
         return context;
     }
 }

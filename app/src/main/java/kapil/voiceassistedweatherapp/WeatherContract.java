@@ -3,7 +3,7 @@ package kapil.voiceassistedweatherapp;
 import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 
 /**
- * WeatherContract lays down the contract between the View {@link MainActivity} and the Presenter {@link WeatherPresenter}.
+ * WeatherContract lays down the contract between the View {@link WeatherActivity} and the Presenter {@link WeatherPresenter}.
  */
 
 interface WeatherContract {

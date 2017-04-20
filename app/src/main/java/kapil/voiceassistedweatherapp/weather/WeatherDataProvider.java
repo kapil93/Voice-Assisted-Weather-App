@@ -24,7 +24,7 @@ import retrofit2.http.Query;
 
 /**
  * WeatherDataProvider takes the voice string as an input, detects weather intent and location from
- * the string and provides weather data.
+ * the string and provides weather data through {@link OnWeatherDataReceivedListener}.
  */
 
 public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -152,7 +152,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
     }
 
     /**
-     * This method fetches the weather info from openweather api.
+     * This method fetches the weather info from open weather api.
      *
      * @param location: Name of place as a String.
      */
@@ -177,7 +177,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
     }
 
     /**
-     * This method fetches the weather info from openweather api.
+     * This method fetches the weather info from open weather api.
      *
      * @param latitude: Latitude of location.
      * @param longitude: Longitude of location.
@@ -207,7 +207,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
      * the appropriate error message to WeatherPresenter in case of errors.
      *
      * If there are no errors, it feeds the WeatherData to the WeatherPresenter which in turn sends
-     * the data to MainActivity to get displayed on the screen.
+     * the data to WeatherActivity to get displayed on the screen.
      *
      * @param weatherData: Response body obtained from open weather api.
      */

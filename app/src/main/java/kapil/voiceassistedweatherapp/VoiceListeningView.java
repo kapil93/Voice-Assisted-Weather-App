@@ -1,4 +1,4 @@
-package kapil.voiceassistedweatherapp.customviews;
+package kapil.voiceassistedweatherapp;
 
 import android.animation.ValueAnimator;
 import android.content.Context;
@@ -9,8 +9,6 @@ import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
-
-import kapil.voiceassistedweatherapp.R;
 
 /**
  * This is a custom view for visual feedback during the SpeechRecognizer is in Listening Mode.
