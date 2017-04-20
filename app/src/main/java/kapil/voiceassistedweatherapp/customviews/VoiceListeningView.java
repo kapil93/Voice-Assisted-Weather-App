@@ -41,8 +41,8 @@ public class VoiceListeningView extends View {
     }
 
     private void init() {
-        radius = pxToDp(30);
-        circleAction = 20;       // px
+        radius = DpToPx(30);            // dp
+        circleAction = DpToPx(10);      // dp
 
         animationDuration = 800;        // milliseconds
 
@@ -75,8 +75,8 @@ public class VoiceListeningView extends View {
         }
     }
 
-    public float pxToDp(float px) {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, px, getResources().getDisplayMetrics());
+    public float DpToPx(float dp) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
 
     public void startAnim() {
@@ -94,22 +94,6 @@ public class VoiceListeningView extends View {
     public void endAnim() {
         if (radiusAnimator.isRunning()) {
             radiusAnimator.end();
-        }
-    }
-
-    @Override
-    public void setVisibility(int visibility) {
-        super.setVisibility(visibility);
-        switch (visibility) {
-            case VISIBLE:
-                startAnim();
-                break;
-            case INVISIBLE:
-                pauseAnim();
-                break;
-            case GONE:
-                endAnim();
-                break;
         }
     }
 }
