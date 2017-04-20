@@ -1,9 +1,7 @@
 package kapil.voiceassistedweatherapp.weather;
 
-import android.content.Context;
 import android.location.Location;
 import android.os.Bundle;
-import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -13,6 +11,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 import kapil.voiceassistedweatherapp.weather.models.witai.WitAiResponse;
@@ -20,7 +19,6 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
-import retrofit2.converter.jackson.JacksonConverterFactory;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
 
@@ -35,38 +33,39 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
     private static final String WEATHER_API_KEY = "50c8597b2c9f17117947019b4bf354cc";
     private static final String WIT_AI_ACCESS_TOKEN = "NNXGXARQPAM2V2Q6TNK6NOA3OHPQJJ57";
 
-    private static final int WEATHER_SERVICE = 0;
-    private static final int WIT_AI_SERVICE = 1;
+    @Inject @Named("WIT_AI_SERVICE") Retrofit witAiRetrofit;
+    @Inject @Named("WEATHER_SERVICE") Retrofit weatherRetrofit;
 
-    //@Inject @Named("WIT_AI_SERVICE") Retrofit witAiRetrofit;
-    //@Inject @Named("WEATHER_SERVICE") Retrofit weatherRetrofit;
+    private ApiCallService.WitAiService witAiService;
+    private ApiCallService.WeatherService weatherService;
 
-    private final ApiCallService.WitAiService witAiService;
-    private final ApiCallService.WeatherService weatherService;
-
-    private GoogleApiClient googleApiClient;
+    @Inject GoogleApiClient googleApiClient;
 
     private OnWeatherDataReceivedListener onWeatherDataReceivedListener;
 
-    @IntDef({WEATHER_SERVICE, WIT_AI_SERVICE})
-    @interface ServiceType {
+    @Inject WeatherDataProvider() {
+        initializeWitAiService();
+        initializeWeatherService();
 
+        registerLocationCallbacks();
     }
 
-    @Inject WeatherDataProvider(Context context) {
-        witAiService = call(WIT_AI_SERVICE).create(ApiCallService.WitAiService.class);
-        weatherService = call(WEATHER_SERVICE).create(ApiCallService.WeatherService.class);
-
-        initializeGoogleApiClient(context);
+    @Inject void initializeWitAiService() {
+        if (witAiRetrofit != null) {
+            witAiService = witAiRetrofit.create(ApiCallService.WitAiService.class);
+        }
     }
 
-    private void initializeGoogleApiClient(Context context) {
-        if (googleApiClient == null) {
-            googleApiClient = new GoogleApiClient.Builder(context)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
+    @Inject void initializeWeatherService() {
+        if (weatherRetrofit != null) {
+            weatherService = weatherRetrofit.create(ApiCallService.WeatherService.class);
+        }
+    }
+
+    @Inject void registerLocationCallbacks() {
+        if (googleApiClient != null) {
+            googleApiClient.registerConnectionCallbacks(this);
+            googleApiClient.registerConnectionFailedListener(this);
         }
     }
 
@@ -233,23 +232,6 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
         interface WitAiService {
             @GET("message")
             Call<WitAiResponse> fetchWitAiIntent(@Query("q") String string, @Query("access_token") String access_token);
-        }
-    }
-
-    private static Retrofit call(@ServiceType int serviceType) {
-        switch (serviceType) {
-            case WEATHER_SERVICE:
-                return new Retrofit.Builder()
-                        .baseUrl("http://api.openweathermap.org/")
-                        .addConverterFactory(JacksonConverterFactory.create())
-                        .build();
-            case WIT_AI_SERVICE:
-                return new Retrofit.Builder()
-                        .baseUrl("https://api.wit.ai/")
-                        .addConverterFactory(JacksonConverterFactory.create())
-                        .build();
-            default:
-                return null;
         }
     }
 }
