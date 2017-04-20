@@ -1,5 +1,5 @@
 
-package kapil.voiceassistedweatherapp.witai.models;
+package kapil.voiceassistedweatherapp.weather.models.witai;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
