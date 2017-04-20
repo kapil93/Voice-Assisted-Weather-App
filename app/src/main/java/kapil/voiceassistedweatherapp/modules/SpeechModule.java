@@ -20,8 +20,8 @@ public class SpeechModule {
         this.voiceAssistedWeatherApp = voiceAssistedWeatherApp;
     }
 
-    @Singleton
     @Provides
+    @Singleton
     SpeechRecognizer provideSpeechRecognizer() {
         return SpeechRecognizer.createSpeechRecognizer(voiceAssistedWeatherApp);
     }

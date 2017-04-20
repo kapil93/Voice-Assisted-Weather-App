@@ -13,9 +13,9 @@ import kapil.voiceassistedweatherapp.WeatherPresenter;
  * Created by Kapil on 10/04/17.
  */
 
-@Module
+//@Module
 public class WeatherPresenterModule {
-    private VoiceAssistedWeatherApp voiceAssistedWeatherApp;
+    /*private VoiceAssistedWeatherApp voiceAssistedWeatherApp;
 
     public WeatherPresenterModule(VoiceAssistedWeatherApp voiceAssistedWeatherApp) {
         this.voiceAssistedWeatherApp = voiceAssistedWeatherApp;
@@ -23,7 +23,7 @@ public class WeatherPresenterModule {
 
     @Singleton
     @Provides
-    WeatherPresenter provideWeatherPresenter(SpeechRecognizer speechRecognizer) {
-        return new WeatherPresenter(voiceAssistedWeatherApp, speechRecognizer);
-    }
+    WeatherPresenter provideWeatherPresenter() {
+        return new WeatherPresenter(voiceAssistedWeatherApp);
+    }*/
 }
