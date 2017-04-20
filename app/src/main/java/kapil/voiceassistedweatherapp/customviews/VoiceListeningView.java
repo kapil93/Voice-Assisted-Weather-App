@@ -13,17 +13,13 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import kapil.voiceassistedweatherapp.R;
 
 /**
- * Created by kapil on 08-01-2017.
- *
- * This is a custom view for visual feedback during the Speech Recognizer is in Listening Mode.
+ * This is a custom view for visual feedback during the SpeechRecognizer is in Listening Mode.
  */
 public class VoiceListeningView extends View {
     private float radius;
-    private float circleAction;
 
     private Paint paint;
     private ValueAnimator radiusAnimator;
-    private int animationDuration;
 
     public VoiceListeningView(Context context) {
         super(context);
@@ -41,10 +37,10 @@ public class VoiceListeningView extends View {
     }
 
     private void init() {
-        radius = DpToPx(30);            // dp
-        circleAction = DpToPx(10);      // dp
+        radius = DpToPx(30);                  // dp
+        float circleAction = DpToPx(10);      // dp
 
-        animationDuration = 800;        // milliseconds
+        int animationDuration = 800;          // milliseconds
 
         paint = new Paint();
         paint.setAntiAlias(true);
@@ -82,12 +78,6 @@ public class VoiceListeningView extends View {
     public void startAnim() {
         if (!radiusAnimator.isRunning()) {
             radiusAnimator.start();
-        }
-    }
-
-    public void pauseAnim() {
-        if (radiusAnimator.isRunning()) {
-            radiusAnimator.pause();
         }
     }
 

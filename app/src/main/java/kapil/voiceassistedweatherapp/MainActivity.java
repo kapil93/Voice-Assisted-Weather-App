@@ -17,7 +17,8 @@ import kapil.voiceassistedweatherapp.customviews.VoiceListeningView;
 import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 
 /**
- * Created by Kapil on 29/01/17.
+ * MainActivity (View) sends appropriate callbacks regarding user interaction with the screen to
+ * {@link WeatherPresenter} (Presenter) and displays information sent by it.
  */
 
 public class MainActivity extends AppCompatActivity implements WeatherContract.View, View.OnClickListener {
@@ -51,10 +52,8 @@ public class MainActivity extends AppCompatActivity implements WeatherContract.V
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //weatherPresenter = new WeatherPresenter(this, this);
         ((VoiceAssistedWeatherApp) getApplication()).getAppComponent().inject(this);
 
-        //weatherPresenter.setViewDataProvider(this);
         weatherPresenter.setView(this);
 
         initializeViews();

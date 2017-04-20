@@ -25,7 +25,8 @@ import retrofit2.http.GET;
 import retrofit2.http.Query;
 
 /**
- * Created by witworks on 18/04/17.
+ * WeatherDataProvider takes the voice string as an input, detects weather intent and location from
+ * the string and provides weather data.
  */
 
 public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -52,8 +53,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
 
     }
 
-    @Inject
-    public WeatherDataProvider(Context context) {
+    @Inject WeatherDataProvider(Context context) {
         witAiService = call(WIT_AI_SERVICE).create(ApiCallService.WitAiService.class);
         weatherService = call(WEATHER_SERVICE).create(ApiCallService.WeatherService.class);
 
@@ -102,7 +102,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
      *
      * Weather Intent and Location are detected and returned by the wit.ai service.
      *
-     * @param string
+     * @param string: Voice string obtained from SpeechRecognizer.
      */
 
     public void requestWeatherData(String string) {
@@ -132,12 +132,12 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
      * If there are no errors, it takes the location from wit.ai and feeds it to WeatherService
      * which in turn tells the weather.
      *
-     * @param witAiResponse
+     * @param witAiResponse: Response body obtained from wit.ai service.
      */
 
     private void analyzeWitAiResponse(WitAiResponse witAiResponse) {
         if (witAiResponse == null) {
-            onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.WITAI_NULL_RESPONSE);
+            onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.WIT_AI_NULL_RESPONSE);
         } else {
             if (witAiResponse.getEntities().getIntent() == null) {
                 onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.WEATHER_INTENT_NOT_FOUND);
@@ -155,7 +155,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
     /**
      * This method fetches the weather info from openweather api.
      *
-     * @param location
+     * @param location: Name of place as a String.
      */
 
     private void getWeatherInfoForLocation(String location) {
@@ -180,8 +180,8 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
     /**
      * This method fetches the weather info from openweather api.
      *
-     * @param latitude
-     * @param longitude
+     * @param latitude: Latitude of location.
+     * @param longitude: Longitude of location.
      */
 
     private void getWeatherInfoForLocation(String latitude, String longitude) {
@@ -210,7 +210,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
      * If there are no errors, it feeds the WeatherData to the WeatherPresenter which in turn sends
      * the data to MainActivity to get displayed on the screen.
      *
-     * @param weatherData
+     * @param weatherData: Response body obtained from open weather api.
      */
 
     private void analyzeWeatherData(WeatherData weatherData) {

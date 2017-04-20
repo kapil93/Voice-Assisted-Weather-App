@@ -18,7 +18,8 @@ import kapil.voiceassistedweatherapp.weather.WeatherDataProvider;
 import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 
 /**
- * Created by Kapil on 29/01/17.
+ * WeatherPresenter (Presenter) sends appropriate request to {@link WeatherDataProvider} using the input
+ * provided by {@link MainActivity} (View) and sends back the result obtained from WeatherDataProvider.
  */
 
 public class WeatherPresenter implements WeatherContract.Presenter, RecognitionListener, OnWeatherDataReceivedListener {
@@ -34,8 +35,7 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
 
     private String latestRequestedString;
 
-    @Inject
-    public WeatherPresenter(Context context) {
+    @Inject WeatherPresenter(Context context) {
         this.context = context;
 
         setUpSpeechRecognizer();
@@ -118,7 +118,7 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
     @Override
     public void onResults(Bundle results) {
         ArrayList resultList = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        String bestResult = (String) resultList.get(0);
+        String bestResult = (String) (resultList != null ? resultList.get(0) : null);
         Log.i(SPEECH_TAG, "onResult: " + bestResult);
         view.setVoiceString(bestResult);
         latestRequestedString = bestResult;
@@ -132,7 +132,7 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
     @Override
     public void onPartialResults(Bundle partialResults) {
         ArrayList resultList = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        String bestResult = (String) resultList.get(0);
+        String bestResult = (String) (resultList != null ? resultList.get(0) : null);
         Log.i(SPEECH_TAG, "onPartialResult: " + bestResult);
         view.setVoiceString(String.format(bestResult + "%s", "..."));
     }
@@ -162,7 +162,7 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
             case GPS_UNAVAILABLE:
                 resId = R.string.gps_unavailable;
                 break;
-            case WITAI_NULL_RESPONSE:
+            case WIT_AI_NULL_RESPONSE:
                 resId = R.string.null_wit_ai_response;
                 break;
             case WEATHER_INTENT_NOT_FOUND:
