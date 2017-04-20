@@ -13,16 +13,17 @@ import android.widget.Toast;
 
 import javax.inject.Inject;
 
-import kapil.voiceassistedweatherapp.customviews.VoiceListeningView;
+import kapil.voiceassistedweatherapp.app.VoiceAssistedWeatherApp;
+import kapil.voiceassistedweatherapp.weather.WeatherDataProviderModule;
 import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 
 /**
- * MainActivity (View) sends appropriate callbacks regarding user interaction with the screen to
+ * WeatherActivity (View) sends appropriate callbacks regarding user interaction with the screen to
  * {@link WeatherPresenter} (Presenter) and displays information sent by it.
  */
 
-public class MainActivity extends AppCompatActivity implements WeatherContract.View, View.OnClickListener {
-    private static final String TAG = MainActivity.class.getSimpleName();
+public class WeatherActivity extends AppCompatActivity implements WeatherContract.View, View.OnClickListener {
+    private static final String TAG = WeatherActivity.class.getSimpleName();
 
     @Inject WeatherPresenter weatherPresenter;
 
@@ -50,17 +51,20 @@ public class MainActivity extends AppCompatActivity implements WeatherContract.V
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_weather);
 
-        ((VoiceAssistedWeatherApp) getApplication()).getAppComponent().inject(this);
-
-        weatherPresenter.setView(this);
+        DaggerWeatherComponent.builder()
+                .appComponent(((VoiceAssistedWeatherApp) getApplication()).getAppComponent())
+                .weatherPresenterModule(new WeatherPresenterModule(this))
+                .weatherDataProviderModule(new WeatherDataProviderModule())
+                .build()
+                .inject(this);
 
         initializeViews();
         showViews(false);
         setClickListeners();
 
-        progressDialog = new ProgressDialog(MainActivity.this);
+        progressDialog = new ProgressDialog(WeatherActivity.this);
         progressDialog.setMessage(getString(R.string.weather_progress_message));
         progressDialog.setCancelable(false);
     }
@@ -84,6 +88,13 @@ public class MainActivity extends AppCompatActivity implements WeatherContract.V
         windSpeed = (TextView) findViewById(R.id.wind_speed);
         windSpeedIcon = (ImageView) findViewById(R.id.wind_speed_icon);
     }
+
+    /**
+     * This method toggles between showing weather data and hiding it. It also hides suggestion text if
+     * weather data is shown and shows suggestion text if weather data is hidden.
+     *
+     * @param show: shows weather data and hides suggestion text if true and vice versa.
+     */
 
     private void showViews(boolean show) {
         int visibility = show ? View.VISIBLE : View.GONE;
@@ -163,7 +174,7 @@ public class MainActivity extends AppCompatActivity implements WeatherContract.V
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_SHORT).show();
+                Toast.makeText(WeatherActivity.this, errorMsg, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -171,7 +182,7 @@ public class MainActivity extends AppCompatActivity implements WeatherContract.V
     @Override
     public void showWeatherData(WeatherData weatherData) {
         if (weatherData != null) {
-            displayWeatherData(weatherData);
+            setWeatherData(weatherData);
         }
     }
 
@@ -195,7 +206,13 @@ public class MainActivity extends AppCompatActivity implements WeatherContract.V
         }
     }
 
-    private void displayWeatherData(WeatherData weatherData) {
+    /**
+     * Sets weather data into appropriate views.
+     *
+     * @param weatherData: Response body obtained from open weather api.
+     */
+
+    private void setWeatherData(WeatherData weatherData) {
         place.setText(weatherData.getName() + ", " + weatherData.getSys().getCountry());
         setWeatherIcon(weatherData.getWeather().get(0).getIcon());
         temperature.setText(String.format(String.valueOf(Math.round(weatherData.getMain().getTemp())) + "%c", '°'));
@@ -206,9 +223,15 @@ public class MainActivity extends AppCompatActivity implements WeatherContract.V
         windSpeed.setText(String.format(weatherData.getWind().getSpeed() + "%s", " mps"));
     }
 
-    private void setWeatherIcon(String icon) {
+    /**
+     * Sets appropriate icon into image view according to the Icon ID.
+     *
+     * @param iconId: Icon ID obtained from open weather api.
+     */
+
+    private void setWeatherIcon(String iconId) {
         int iconResourceId;
-        switch (icon) {
+        switch (iconId) {
             case "01d":
                 iconResourceId = R.drawable._01d;
                 break;

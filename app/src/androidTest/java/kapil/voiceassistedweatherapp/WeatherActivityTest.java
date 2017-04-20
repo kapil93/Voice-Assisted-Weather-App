@@ -24,10 +24,10 @@ import static org.hamcrest.Matchers.not;
 /**
  * Created by Kapil on 29/01/17.
  */
-public class MainActivityTest {
+public class WeatherActivityTest {
     /*@Rule
-    public ActivityTestRule<MainActivity> mainActivityTestRule = new ActivityTestRule<>(
-            MainActivity.class);
+    public ActivityTestRule<WeatherActivity> mainActivityTestRule = new ActivityTestRule<>(
+            WeatherActivity.class);
 
     @Before
     public void setUp() throws Exception {

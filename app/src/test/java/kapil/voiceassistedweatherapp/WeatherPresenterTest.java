@@ -3,21 +3,6 @@ package kapil.voiceassistedweatherapp;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import kapil.voiceassistedweatherapp.weather.models.witai.Entities;
-import kapil.voiceassistedweatherapp.weather.models.witai.Intent;
-import kapil.voiceassistedweatherapp.weather.models.witai.WitAiResponse;
-
-import javax.inject.Inject;
-
-import kapil.voiceassistedweatherapp.weather.OnWeatherDataReceivedListener;
-import kapil.voiceassistedweatherapp.weather.models.WeatherData;
-import kapil.voiceassistedweatherapp.witai.OnWitAiResponseListener;
-import kapil.voiceassistedweatherapp.witai.models.Entities;
-import kapil.voiceassistedweatherapp.witai.models.Intent;
-import kapil.voiceassistedweatherapp.witai.models.WitAiResponse;
-
-import static org.mockito.Mockito.verify;
-
 /**
  * Created by Kapil on 29/01/17.
  */
