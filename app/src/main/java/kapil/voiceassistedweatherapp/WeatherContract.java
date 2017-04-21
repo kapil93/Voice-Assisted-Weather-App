@@ -20,7 +20,7 @@ interface WeatherContract {
 
         void showToastErrorMessage(int errorResId);
 
-        void showWeatherData(WeatherData weatherData);
+        void setWeatherData(WeatherData weatherData);
 
         void showNoInternetSnackbar(boolean show);
     }

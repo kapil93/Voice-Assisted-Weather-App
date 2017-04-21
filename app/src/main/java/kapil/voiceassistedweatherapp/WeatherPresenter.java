@@ -147,7 +147,7 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
     public void onWeatherDataReceived(WeatherData weatherData) {
         view.showLoader(false);
         view.showNoInternetSnackbar(false);
-        view.showWeatherData(weatherData);
+        view.setWeatherData(weatherData);
         view.showWeatherDataViewContainer(true);
     }
 
