@@ -23,7 +23,7 @@ import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
  */
 
 public class WeatherPresenter implements WeatherContract.Presenter, RecognitionListener, OnWeatherDataReceivedListener {
-    private static final String SPEECH_TAG = "Speech Recognition";
+    private static final String TAG = "WeatherPresenter";
 
     private Context context;
     private WeatherContract.View view;
@@ -79,7 +79,7 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
 
     @Override
     public void onReadyForSpeech(Bundle params) {
-        Log.i(SPEECH_TAG, "onReady");
+        Log.i(TAG, "onReady");
         if (context != null) {
             view.setVoiceString(context.getString(R.string.voice_listening));
         }
@@ -88,28 +88,28 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
 
     @Override
     public void onBeginningOfSpeech() {
-        Log.i(SPEECH_TAG, "onBegin");
+        Log.i(TAG, "onBegin");
     }
 
     @Override
     public void onRmsChanged(float rmsdB) {
-        Log.i(SPEECH_TAG, "onRmsChanged: " + rmsdB);
+        Log.i(TAG, "onRmsChanged: " + rmsdB);
     }
 
     @Override
     public void onBufferReceived(byte[] buffer) {
-        Log.i(SPEECH_TAG, "onBufferReceived");
+        Log.i(TAG, "onBufferReceived");
     }
 
     @Override
     public void onEndOfSpeech() {
-        Log.i(SPEECH_TAG, "onEnd");
+        Log.i(TAG, "onEnd");
         view.setVoiceListeningAnimationEnabled(false);
     }
 
     @Override
     public void onError(int error) {
-        Log.i(SPEECH_TAG, "showToastErrorMessage: " + error);
+        Log.i(TAG, "showToastErrorMessage: " + error);
         if (context != null) {
             view.setVoiceString(context.getString(R.string.voice_button_promt));
         }
@@ -120,7 +120,7 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
     public void onResults(Bundle results) {
         ArrayList resultList = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         String bestResult = (String) (resultList != null ? resultList.get(0) : null);
-        Log.i(SPEECH_TAG, "onResult: " + bestResult);
+        Log.i(TAG, "onResult: " + bestResult);
         view.setVoiceString(bestResult);
         latestRequestedString = bestResult;
 
@@ -134,17 +134,18 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
     public void onPartialResults(Bundle partialResults) {
         ArrayList resultList = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         String bestResult = (String) (resultList != null ? resultList.get(0) : null);
-        Log.i(SPEECH_TAG, "onPartialResult: " + bestResult);
+        Log.i(TAG, "onPartialResult: " + bestResult);
         view.setVoiceString(String.format(bestResult + "%s", "..."));
     }
 
     @Override
     public void onEvent(int eventType, Bundle params) {
-        Log.i(SPEECH_TAG, "onEvent");
+        Log.i(TAG, "onEvent");
     }
 
     @Override
     public void onWeatherDataReceived(WeatherData weatherData) {
+        Log.i(TAG, "onWeatherDataReceived");
         view.showLoader(false);
         view.showNoInternetSnackbar(false);
         view.setWeatherData(weatherData);
@@ -153,6 +154,7 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
 
     @Override
     public void onFailure(@WeatherResponseFailureType int failureType) {
+        Log.e(TAG, String.valueOf(failureType));
         view.showLoader(false);
         int resId = 0;
         switch (failureType) {

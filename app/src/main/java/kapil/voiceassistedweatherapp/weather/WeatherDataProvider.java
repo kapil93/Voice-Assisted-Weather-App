@@ -71,6 +71,8 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
+        Log.i(TAG, "onConnected");
+
         Location location = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
 
         if (location != null) {
@@ -84,12 +86,12 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
 
     @Override
     public void onConnectionSuspended(int i) {
-
+        Log.i(TAG, "onConnectionSuspended");
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
+        Log.i(TAG, "onConnectionFailed");
     }
 
     public void setOnWeatherDataReceivedListener(OnWeatherDataReceivedListener onWeatherDataReceivedListener) {
@@ -109,14 +111,15 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
         call.enqueue(new Callback<WitAiResponse>() {
             @Override
             public void onResponse(Call<WitAiResponse> call, Response<WitAiResponse> response) {
+                Log.i(TAG, "onWitAiResponse");
                 if (onWeatherDataReceivedListener != null) {
                     analyzeWitAiResponse(response.body());
-                    Log.i(TAG, response.body().toString());
                 }
             }
 
             @Override
             public void onFailure(Call<WitAiResponse> call, Throwable t) {
+                Log.i(TAG, "onWitAiFailure");
                 if (onWeatherDataReceivedListener != null) {
                     onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
                 }
@@ -162,6 +165,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
         call.enqueue(new Callback<WeatherData>() {
             @Override
             public void onResponse(Call<WeatherData> call, Response<WeatherData> response) {
+                Log.i(TAG, "onWeatherResponse");
                 if (onWeatherDataReceivedListener != null) {
                     analyzeWeatherData(response.body());
                 }
@@ -169,6 +173,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
 
             @Override
             public void onFailure(Call<WeatherData> call, Throwable t) {
+                Log.i(TAG, "onWeatherFailure");
                 if (onWeatherDataReceivedListener != null) {
                     onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
                 }
@@ -188,6 +193,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
         call.enqueue(new Callback<WeatherData>() {
             @Override
             public void onResponse(Call<WeatherData> call, Response<WeatherData> response) {
+                Log.i(TAG, "onWeatherResponse");
                 if (onWeatherDataReceivedListener != null) {
                     analyzeWeatherData(response.body());
                 }
@@ -195,6 +201,7 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
 
             @Override
             public void onFailure(Call<WeatherData> call, Throwable t) {
+                Log.i(TAG, "onWeatherFailure");
                 if (onWeatherDataReceivedListener != null) {
                     onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
                 }
