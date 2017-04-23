@@ -180,9 +180,9 @@ public class WeatherActivity extends AppCompatActivity implements WeatherContrac
     }
 
     @Override
-    public void showWeatherData(WeatherData weatherData) {
+    public void setWeatherData(WeatherData weatherData) {
         if (weatherData != null) {
-            setWeatherData(weatherData);
+            setWeatherDataIntoViews(weatherData);
         }
     }
 
@@ -212,7 +212,7 @@ public class WeatherActivity extends AppCompatActivity implements WeatherContrac
      * @param weatherData: Response body obtained from open weather api.
      */
 
-    private void setWeatherData(WeatherData weatherData) {
+    private void setWeatherDataIntoViews(WeatherData weatherData) {
         place.setText(weatherData.getName() + ", " + weatherData.getSys().getCountry());
         setWeatherIcon(weatherData.getWeather().get(0).getIcon());
         temperature.setText(String.format(String.valueOf(Math.round(weatherData.getMain().getTemp())) + "%c", '°'));
