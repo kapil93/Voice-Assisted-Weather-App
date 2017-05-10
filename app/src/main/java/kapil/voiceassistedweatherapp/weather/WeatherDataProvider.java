@@ -1,11 +1,16 @@
 package kapil.voiceassistedweatherapp.weather;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
@@ -13,11 +18,14 @@ import com.google.android.gms.location.LocationServices;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Function;
+import io.reactivex.observers.DisposableObserver;
+import io.reactivex.schedulers.Schedulers;
 import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 import kapil.voiceassistedweatherapp.weather.models.witai.WitAiResponse;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
@@ -33,36 +41,45 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
     private static final String WEATHER_API_KEY = "50c8597b2c9f17117947019b4bf354cc";
     private static final String WIT_AI_ACCESS_TOKEN = "NNXGXARQPAM2V2Q6TNK6NOA3OHPQJJ57";
 
-    @Inject @Named("WIT_AI_SERVICE") Retrofit witAiRetrofit;
-    @Inject @Named("WEATHER_SERVICE") Retrofit weatherRetrofit;
+    @Inject
+    @Named("WIT_AI_SERVICE")
+    Retrofit witAiRetrofit;
+    @Inject
+    @Named("WEATHER_SERVICE")
+    Retrofit weatherRetrofit;
 
     private ApiCallService.WitAiService witAiService;
     private ApiCallService.WeatherService weatherService;
 
-    @Inject GoogleApiClient googleApiClient;
+    @Inject
+    GoogleApiClient googleApiClient;
 
     private OnWeatherDataReceivedListener onWeatherDataReceivedListener;
 
-    @Inject WeatherDataProvider() {
+    @Inject
+    WeatherDataProvider() {
         initializeWitAiService();
         initializeWeatherService();
 
         registerLocationCallbacks();
     }
 
-    @Inject void initializeWitAiService() {
+    @Inject
+    void initializeWitAiService() {
         if (witAiRetrofit != null) {
             witAiService = witAiRetrofit.create(ApiCallService.WitAiService.class);
         }
     }
 
-    @Inject void initializeWeatherService() {
+    @Inject
+    void initializeWeatherService() {
         if (weatherRetrofit != null) {
             weatherService = weatherRetrofit.create(ApiCallService.WeatherService.class);
         }
     }
 
-    @Inject void registerLocationCallbacks() {
+    @Inject
+    void registerLocationCallbacks() {
         if (googleApiClient != null) {
             googleApiClient.registerConnectionCallbacks(this);
             googleApiClient.registerConnectionFailedListener(this);
@@ -73,6 +90,11 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
     public void onConnected(@Nullable Bundle bundle) {
         Log.i(TAG, "onConnected");
 
+        if (ActivityCompat.checkSelfPermission(googleApiClient.getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(googleApiClient.getContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         Location location = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
 
         if (location != null) {
@@ -107,24 +129,37 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
      */
 
     public void requestWeatherData(String string) {
-        Call<WitAiResponse> call = witAiService.fetchWitAiIntent(string, WIT_AI_ACCESS_TOKEN);
-        call.enqueue(new Callback<WitAiResponse>() {
-            @Override
-            public void onResponse(Call<WitAiResponse> call, Response<WitAiResponse> response) {
-                Log.i(TAG, "onWitAiResponse");
-                if (onWeatherDataReceivedListener != null) {
-                    analyzeWitAiResponse(response.body());
-                }
-            }
+        if (onWeatherDataReceivedListener == null) {
+            return;
+        }
 
-            @Override
-            public void onFailure(Call<WitAiResponse> call, Throwable t) {
-                Log.i(TAG, "onWitAiFailure");
-                if (onWeatherDataReceivedListener != null) {
-                    onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
-                }
-            }
-        });
+        Observable<WitAiResponse> call = witAiService.fetchWitAiIntent(string, WIT_AI_ACCESS_TOKEN);
+
+        call.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(new DisposableObserver<WitAiResponse>() {
+                    @Override
+                    public void onNext(@io.reactivex.annotations.NonNull WitAiResponse witAiResponse) {
+                        ObjectMapper objectMapper = new ObjectMapper();
+                        try {
+                            Log.i(TAG, "onWitAiResponse: " + objectMapper.writeValueAsString(witAiResponse));
+                        } catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
+                        analyzeWitAiResponse(witAiResponse);
+                    }
+
+                    @Override
+                    public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                        Log.i(TAG, "onWitAiFailure");
+                        onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        dispose();
+                    }
+                });
     }
 
     /**
@@ -160,25 +195,35 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
      * @param location: Name of place as a String.
      */
 
-    private void getWeatherInfoForLocation(String location) {
-        Call<WeatherData> call = weatherService.fetchWeatherData(location, WEATHER_API_KEY, "metric");
-        call.enqueue(new Callback<WeatherData>() {
-            @Override
-            public void onResponse(Call<WeatherData> call, Response<WeatherData> response) {
-                Log.i(TAG, "onWeatherResponse");
-                if (onWeatherDataReceivedListener != null) {
-                    analyzeWeatherData(response.body());
-                }
-            }
+    private Observable<WeatherData> getWeatherInfoForLocation(String location) {
+        Observable<WeatherData> call = weatherService.fetchWeatherData(location, WEATHER_API_KEY, "metric");
 
-            @Override
-            public void onFailure(Call<WeatherData> call, Throwable t) {
-                Log.i(TAG, "onWeatherFailure");
-                if (onWeatherDataReceivedListener != null) {
-                    onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
-                }
-            }
-        });
+        call.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(new DisposableObserver<WeatherData>() {
+                    @Override
+                    public void onNext(@io.reactivex.annotations.NonNull WeatherData weatherData) {
+                        ObjectMapper objectMapper = new ObjectMapper();
+                        try {
+                            Log.i(TAG, "onWeatherResponse: " + objectMapper.writeValueAsString(weatherData));
+                        } catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
+                        analyzeWeatherData(weatherData);
+                    }
+
+                    @Override
+                    public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                        Log.i(TAG, "onWeatherFailure");
+                        onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        dispose();
+                    }
+                });
+        return call;
     }
 
     /**
@@ -189,24 +234,33 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
      */
 
     private void getWeatherInfoForLocation(String latitude, String longitude) {
-        Call<WeatherData> call = weatherService.fetchWeatherData(latitude, longitude, WEATHER_API_KEY, "metric");
-        call.enqueue(new Callback<WeatherData>() {
-            @Override
-            public void onResponse(Call<WeatherData> call, Response<WeatherData> response) {
-                Log.i(TAG, "onWeatherResponse");
-                if (onWeatherDataReceivedListener != null) {
-                    analyzeWeatherData(response.body());
-                }
-            }
+        Observable<WeatherData> call = weatherService.fetchWeatherData(latitude, longitude, WEATHER_API_KEY, "metric");
 
-            @Override
-            public void onFailure(Call<WeatherData> call, Throwable t) {
-                Log.i(TAG, "onWeatherFailure");
-                if (onWeatherDataReceivedListener != null) {
-                    onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
-                }
-            }
-        });
+        call.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(new DisposableObserver<WeatherData>() {
+                    @Override
+                    public void onNext(@io.reactivex.annotations.NonNull WeatherData weatherData) {
+                        ObjectMapper objectMapper = new ObjectMapper();
+                        try {
+                            Log.i(TAG, "onWeatherResponse: " + objectMapper.writeValueAsString(weatherData));
+                        } catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
+                        analyzeWeatherData(weatherData);
+                    }
+
+                    @Override
+                    public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                        Log.i(TAG, "onWeatherFailure");
+                        onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        dispose();
+                    }
+                });
     }
 
     /**
@@ -230,15 +284,15 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
     private interface ApiCallService {
         interface WeatherService {
             @GET("data/2.5/weather")
-            Call<WeatherData> fetchWeatherData(@Query("q") String place, @Query("APPID") String appId, @Query("units") String units);
+            Observable<WeatherData> fetchWeatherData(@Query("q") String place, @Query("APPID") String appId, @Query("units") String units);
 
             @GET("data/2.5/weather")
-            Call<WeatherData> fetchWeatherData(@Query("lat") String latitude, @Query("lon") String longitude, @Query("APPID") String appId, @Query("units") String units);
+            Observable<WeatherData> fetchWeatherData(@Query("lat") String latitude, @Query("lon") String longitude, @Query("APPID") String appId, @Query("units") String units);
         }
 
         interface WitAiService {
             @GET("message")
-            Call<WitAiResponse> fetchWitAiIntent(@Query("q") String string, @Query("access_token") String access_token);
+            Observable<WitAiResponse> fetchWitAiIntent(@Query("q") String string, @Query("access_token") String access_token);
         }
     }
 }
