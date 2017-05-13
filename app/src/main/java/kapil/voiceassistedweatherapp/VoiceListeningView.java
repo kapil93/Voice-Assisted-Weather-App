@@ -14,6 +14,9 @@ import android.view.animation.AccelerateDecelerateInterpolator;
  * This is a custom view for visual feedback during the SpeechRecognizer is in Listening Mode.
  */
 public class VoiceListeningView extends View {
+    private static final float RADIUS = 30;       //dp
+    private static final float ACTION = 10;       //dp
+
     private float radius;
 
     private Paint paint;
@@ -35,8 +38,8 @@ public class VoiceListeningView extends View {
     }
 
     private void init() {
-        radius = DpToPx(30);                  // dp
-        float circleAction = DpToPx(10);      // dp
+        radius = DpToPx(RADIUS);
+        float circleAction = DpToPx(ACTION);
 
         int animationDuration = 800;          // milliseconds
 
@@ -47,7 +50,7 @@ public class VoiceListeningView extends View {
         paint.setAlpha(99);
 
         radiusAnimator = new ValueAnimator();
-        radiusAnimator.setFloatValues(radius, radius + circleAction, radius);
+        radiusAnimator.setFloatValues(radius + circleAction, radius, radius + circleAction);
         radiusAnimator.setDuration(animationDuration);
         radiusAnimator.setRepeatMode(ValueAnimator.RESTART);
         radiusAnimator.setRepeatCount(ValueAnimator.INFINITE);
@@ -82,6 +85,27 @@ public class VoiceListeningView extends View {
     public void endAnim() {
         if (radiusAnimator.isRunning()) {
             radiusAnimator.end();
+        }
+    }
+
+    /**
+     * Manipulates the overall radius and animation of the voice listening circle as a visual
+     * response for the change in sound level.
+     *
+     * @param rmsDb A value representing the amplitude of the voice input.
+     */
+
+    public void setVoiceListeningCircleAction(float rmsDb) {
+        float radius = DpToPx(RADIUS);
+        float circleAction = DpToPx(ACTION);
+
+        if (rmsDb > 4) {
+            circleAction += DpToPx(rmsDb / 2f);
+            radiusAnimator.end();
+            radiusAnimator.setFloatValues(radius + circleAction, radius, radius + circleAction);
+            radiusAnimator.start();
+        } else {
+            radiusAnimator.setFloatValues(radius + circleAction, radius, radius + circleAction);
         }
     }
 }
