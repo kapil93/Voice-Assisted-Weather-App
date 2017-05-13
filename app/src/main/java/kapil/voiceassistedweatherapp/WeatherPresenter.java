@@ -92,8 +92,9 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
     }
 
     @Override
-    public void onRmsChanged(float rmsdB) {
-        Log.i(TAG, "onRmsChanged: " + rmsdB);
+    public void onRmsChanged(float rmsDb) {
+        Log.i(TAG, "onRmsChanged: " + rmsDb);
+        view.setVoiceListeningCircleAction(rmsDb);
     }
 
     @Override

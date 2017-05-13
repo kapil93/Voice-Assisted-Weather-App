@@ -23,6 +23,8 @@ interface WeatherContract {
         void setWeatherData(WeatherData weatherData);
 
         void showNoInternetSnackbar(boolean show);
+
+        void setVoiceListeningCircleAction(float rmsDb);
     }
 
     interface Presenter {

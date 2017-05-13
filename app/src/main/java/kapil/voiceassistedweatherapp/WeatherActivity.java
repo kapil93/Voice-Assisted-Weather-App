@@ -206,6 +206,11 @@ public class WeatherActivity extends AppCompatActivity implements WeatherContrac
         }
     }
 
+    @Override
+    public void setVoiceListeningCircleAction(float rmsDb) {
+        voiceListeningView.setVoiceListeningCircleAction(rmsDb);
+    }
+
     /**
      * Sets weather data into appropriate views.
      *
