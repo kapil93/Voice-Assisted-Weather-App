@@ -1,29 +1,19 @@
 package kapil.voiceassistedweatherapp.weather;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.location.Location;
-import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
+import android.content.Context;
 import android.util.Log;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationServices;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.reactivex.Observable;
-import io.reactivex.ObservableSource;
 import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.functions.Function;
-import io.reactivex.observers.DisposableObserver;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import kapil.voiceassistedweatherapp.R;
 import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 import kapil.voiceassistedweatherapp.weather.models.witai.WitAiResponse;
 import retrofit2.Retrofit;
@@ -35,11 +25,13 @@ import retrofit2.http.Query;
  * the string and provides weather data through {@link OnWeatherDataReceivedListener}.
  */
 
-public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class WeatherDataProvider {
     private static final String TAG = "WeatherDataProvider";
 
     private static final String WEATHER_API_KEY = "50c8597b2c9f17117947019b4bf354cc";
     private static final String WIT_AI_ACCESS_TOKEN = "NNXGXARQPAM2V2Q6TNK6NOA3OHPQJJ57";
+
+    private final Context context;
 
     @Inject
     @Named("WIT_AI_SERVICE")
@@ -52,16 +44,17 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
     private ApiCallService.WeatherService weatherService;
 
     @Inject
-    GoogleApiClient googleApiClient;
+    LocationProvider locationProvider;
 
     private OnWeatherDataReceivedListener onWeatherDataReceivedListener;
+    private Disposable disposable;
 
     @Inject
-    WeatherDataProvider() {
+    WeatherDataProvider(Context context) {
+        this.context = context;
+
         initializeWitAiService();
         initializeWeatherService();
-
-        registerLocationCallbacks();
     }
 
     @Inject
@@ -78,205 +71,115 @@ public class WeatherDataProvider implements GoogleApiClient.ConnectionCallbacks,
         }
     }
 
-    @Inject
-    void registerLocationCallbacks() {
-        if (googleApiClient != null) {
-            googleApiClient.registerConnectionCallbacks(this);
-            googleApiClient.registerConnectionFailedListener(this);
-        }
-    }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        Log.i(TAG, "onConnected");
-
-        if (ActivityCompat.checkSelfPermission(googleApiClient.getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(googleApiClient.getContext(),
-                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        Location location = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
-
-        if (location != null) {
-            getWeatherInfoForLocation(String.valueOf(location.getLatitude()), String.valueOf(location.getLongitude()));
-        } else {
-            onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.GPS_UNAVAILABLE);
-        }
-
-        googleApiClient.disconnect();
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-        Log.i(TAG, "onConnectionSuspended");
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Log.i(TAG, "onConnectionFailed");
-    }
-
     public void setOnWeatherDataReceivedListener(OnWeatherDataReceivedListener onWeatherDataReceivedListener) {
         this.onWeatherDataReceivedListener = onWeatherDataReceivedListener;
     }
 
     /**
-     * This method hits wit.ai api to make relevance out of the string obtained from voice request.
+     * This method initiates a chain of network calls which either terminates with successful
+     * retrieval of {@link WeatherData} or an appropriate error message which will in turn be
+     * displayed on the screen.
      *
-     * Weather Intent and Location are detected and returned by the wit.ai service.
-     *
-     * @param string: Voice string obtained from SpeechRecognizer.
+     * @param voiceString Voice string obtained from {@link android.speech.SpeechRecognizer}.
      */
 
-    public void requestWeatherData(String string) {
+    public void requestWeatherData(String voiceString) {
         if (onWeatherDataReceivedListener == null) {
             return;
         }
 
-        Observable<WitAiResponse> call = witAiService.fetchWitAiIntent(string, WIT_AI_ACCESS_TOKEN);
-
-        call.subscribeOn(Schedulers.io())
+        disposable = witAiService.fetchWitAiIntent(voiceString, WIT_AI_ACCESS_TOKEN)
+                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(new DisposableObserver<WitAiResponse>() {
-                    @Override
-                    public void onNext(@io.reactivex.annotations.NonNull WitAiResponse witAiResponse) {
-                        ObjectMapper objectMapper = new ObjectMapper();
-                        try {
-                            Log.i(TAG, "onWitAiResponse: " + objectMapper.writeValueAsString(witAiResponse));
-                        } catch (JsonProcessingException e) {
-                            e.printStackTrace();
-                        }
-                        analyzeWitAiResponse(witAiResponse);
-                    }
-
-                    @Override
-                    public void onError(@io.reactivex.annotations.NonNull Throwable e) {
-                        Log.i(TAG, "onWitAiFailure");
+                .filter(this::analyzeWitAiResponse)
+                .observeOn(Schedulers.io())
+                .flatMap(this::getWeatherDataObservable)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::analyzeWeatherData, throwable -> {
+                    throwable.printStackTrace();
+                    if (throwable.getMessage().equals(context.getString(R.string.gps_unavailable))) {
+                        onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.GPS_UNAVAILABLE);
+                    } else {
                         onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
                     }
-
-                    @Override
-                    public void onComplete() {
-                        dispose();
-                    }
-                });
+                }, () -> disposable.dispose());
     }
 
     /**
      * This Method analyzes the response from wit.ai, checks for null values and sends the
-     * appropriate error message to WeatherPresenter in case of errors.
+     * appropriate error message to {@link kapil.voiceassistedweatherapp.WeatherPresenter} in case
+     * of errors.
      *
-     * If there are no errors, it takes the location from wit.ai and feeds it to WeatherService
-     * which in turn tells the weather.
+     * @param witAiResponse Response body obtained from wit.ai service.
      *
-     * @param witAiResponse: Response body obtained from wit.ai service.
+     * @return true if there is weather intent in the wit.ai response, else false.
      */
 
-    private void analyzeWitAiResponse(WitAiResponse witAiResponse) {
+    private boolean analyzeWitAiResponse(WitAiResponse witAiResponse) {
         if (witAiResponse == null) {
             onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.WIT_AI_NULL_RESPONSE);
         } else {
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+                Log.i(TAG, "onWitAiResponse: " + objectMapper.writeValueAsString(witAiResponse));
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+
             if (witAiResponse.getEntities().getIntent() == null) {
                 onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.WEATHER_INTENT_NOT_FOUND);
             } else if (witAiResponse.getEntities().getIntent().get(0).getValue().equals("weather")) {
-                if (witAiResponse.getEntities().getLocation() == null) {
-                    googleApiClient.connect();
-                } else {
-                    String location = witAiResponse.getEntities().getLocation().get(0).getValue();
-                    getWeatherInfoForLocation(location);
-                }
+                return true;
             }
+        }
+        return false;
+    }
+
+    /**
+     * Resolves wit.ai response and returns appropriate weather data observable.
+     *
+     * If there is location data in wit.ai response it uses that location data to get an observable,
+     * else gets device location from {@link LocationProvider} to return an observable.
+     *
+     * @param witAiResponse Response body obtained from wit.ai service.
+     *
+     * @return Weather Data Observable.
+     */
+
+    private Observable<WeatherData> getWeatherDataObservable(WitAiResponse witAiResponse) {
+        if (witAiResponse.getEntities().getLocation() == null) {
+            return locationProvider.getLocationObservable()
+                    .observeOn(Schedulers.io())
+                    .flatMap(location -> weatherService.fetchWeatherData(String.valueOf(location.getLatitude()), String.valueOf(location.getLongitude()), WEATHER_API_KEY, "metric"));
+        } else {
+            String location = witAiResponse.getEntities().getLocation().get(0).getValue();
+            return weatherService.fetchWeatherData(location, WEATHER_API_KEY, "metric");
         }
     }
 
     /**
-     * This method fetches the weather info from open weather api.
-     *
-     * @param location: Name of place as a String.
-     */
-
-    private Observable<WeatherData> getWeatherInfoForLocation(String location) {
-        Observable<WeatherData> call = weatherService.fetchWeatherData(location, WEATHER_API_KEY, "metric");
-
-        call.subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(new DisposableObserver<WeatherData>() {
-                    @Override
-                    public void onNext(@io.reactivex.annotations.NonNull WeatherData weatherData) {
-                        ObjectMapper objectMapper = new ObjectMapper();
-                        try {
-                            Log.i(TAG, "onWeatherResponse: " + objectMapper.writeValueAsString(weatherData));
-                        } catch (JsonProcessingException e) {
-                            e.printStackTrace();
-                        }
-                        analyzeWeatherData(weatherData);
-                    }
-
-                    @Override
-                    public void onError(@io.reactivex.annotations.NonNull Throwable e) {
-                        Log.i(TAG, "onWeatherFailure");
-                        onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        dispose();
-                    }
-                });
-        return call;
-    }
-
-    /**
-     * This method fetches the weather info from open weather api.
-     *
-     * @param latitude: Latitude of location.
-     * @param longitude: Longitude of location.
-     */
-
-    private void getWeatherInfoForLocation(String latitude, String longitude) {
-        Observable<WeatherData> call = weatherService.fetchWeatherData(latitude, longitude, WEATHER_API_KEY, "metric");
-
-        call.subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(new DisposableObserver<WeatherData>() {
-                    @Override
-                    public void onNext(@io.reactivex.annotations.NonNull WeatherData weatherData) {
-                        ObjectMapper objectMapper = new ObjectMapper();
-                        try {
-                            Log.i(TAG, "onWeatherResponse: " + objectMapper.writeValueAsString(weatherData));
-                        } catch (JsonProcessingException e) {
-                            e.printStackTrace();
-                        }
-                        analyzeWeatherData(weatherData);
-                    }
-
-                    @Override
-                    public void onError(@io.reactivex.annotations.NonNull Throwable e) {
-                        Log.i(TAG, "onWeatherFailure");
-                        onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        dispose();
-                    }
-                });
-    }
-
-    /**
-     * This method analyzes the response from the WeatherService, checks for null values and sends
-     * the appropriate error message to WeatherPresenter in case of errors.
+     * This method analyzes the response from the {@link ApiCallService.WeatherService}, checks for
+     * null values and sends the appropriate error message to
+     * {@link kapil.voiceassistedweatherapp.WeatherPresenter} in case of errors.
      *
      * If there are no errors, it feeds the WeatherData to the WeatherPresenter which in turn sends
-     * the data to WeatherActivity to get displayed on the screen.
+     * the data to {@link kapil.voiceassistedweatherapp.WeatherActivity} to get displayed on the
+     * screen.
      *
-     * @param weatherData: Response body obtained from open weather api.
+     * @param weatherData Response body obtained from open weather api.
      */
 
     private void analyzeWeatherData(WeatherData weatherData) {
         if (weatherData == null) {
             onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.PLACE_UNRECOGNIZED);
         } else {
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+                Log.i(TAG, "onWeatherResponse: " + objectMapper.writeValueAsString(weatherData));
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+
             onWeatherDataReceivedListener.onWeatherDataReceived(weatherData);
         }
     }
