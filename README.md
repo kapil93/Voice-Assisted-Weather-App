@@ -7,7 +7,7 @@ The voice command may or may not have location information but must essentially 
 
 <br>
 
-![Animation](app/src/main/res/assets/vawa.gif)
+![Animation](app/src/main/assets/vawa.gif)
 
 <br>
 
