@@ -1,5 +1,7 @@
 package kapil.voiceassistedweatherapp;
 
+import android.support.annotation.IntDef;
+
 import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 
 /**
@@ -9,6 +11,14 @@ import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 interface WeatherContract {
 
     interface View {
+
+        int MICROPHONE_PERMISSION_REQUEST = 4522;
+        int LOCATION_PERMISSION_REQUEST = 3876;
+
+        @IntDef({MICROPHONE_PERMISSION_REQUEST, LOCATION_PERMISSION_REQUEST})
+        @interface Permission {
+
+        }
 
         void setVoiceString(String string);
 
@@ -25,6 +35,8 @@ interface WeatherContract {
         void showNoInternetSnackbar(boolean show);
 
         void setVoiceListeningCircleAction(float rmsDb);
+
+        void requestPermission(@Permission int permissionType);
     }
 
     interface Presenter {

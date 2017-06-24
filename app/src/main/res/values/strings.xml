@@ -9,4 +9,6 @@
     <string name="weather_progress_message">Fetching weather details&#8230;</string>
     <string name="null_wit_ai_response">Sorry! didn\'t get it</string>
     <string name="gps_unavailable">GPS Unavailable</string>
+    <string name="location_permission_denied">Please Grant Location Permission</string>
+    <string name="microphone_permission_denied">Please Grant Microphone Permission</string>
 </resources>

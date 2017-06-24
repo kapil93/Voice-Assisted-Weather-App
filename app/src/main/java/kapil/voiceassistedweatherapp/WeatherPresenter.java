@@ -26,7 +26,7 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
     private static final String TAG = "WeatherPresenter";
 
     private Context context;
-    private WeatherContract.View view;
+    private WeatherContract.View weatherView;
 
     @Inject SpeechRecognizer speechRecognizer;
     private Intent speechIntent;
@@ -35,9 +35,9 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
 
     private String latestRequestedString;
 
-    @Inject WeatherPresenter(Context context, WeatherContract.View view) {
+    @Inject WeatherPresenter(Context context, WeatherContract.View weatherView) {
         this.context = context;
-        this.view = view;
+        this.weatherView = weatherView;
 
         setUpSpeechRecognizer();
         initializeWeatherService();
@@ -72,29 +72,29 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
     @Override
     public void retryDataFetch() {
         if (weatherDataProvider != null) {
-            view.showLoader(true);
+            weatherView.showLoader(true);
             weatherDataProvider.requestWeatherData(latestRequestedString);
         }
     }
 
     @Override
     public void onReadyForSpeech(Bundle params) {
-        Log.i(TAG, "onReady");
+        Log.i(TAG, "onReadyForSpeech");
         if (context != null) {
-            view.setVoiceString(context.getString(R.string.voice_listening));
+            weatherView.setVoiceString(context.getString(R.string.voice_listening));
         }
-        view.setVoiceListeningAnimationEnabled(true);
+        weatherView.setVoiceListeningAnimationEnabled(true);
     }
 
     @Override
     public void onBeginningOfSpeech() {
-        Log.i(TAG, "onBegin");
+        Log.i(TAG, "onBeginningOfSpeech");
     }
 
     @Override
     public void onRmsChanged(float rmsDb) {
         Log.i(TAG, "onRmsChanged: " + rmsDb);
-        view.setVoiceListeningCircleAction(rmsDb);
+        weatherView.setVoiceListeningCircleAction(rmsDb);
     }
 
     @Override
@@ -105,16 +105,19 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
     @Override
     public void onEndOfSpeech() {
         Log.i(TAG, "onEnd");
-        view.setVoiceListeningAnimationEnabled(false);
+        weatherView.setVoiceListeningAnimationEnabled(false);
     }
 
     @Override
     public void onError(int error) {
-        Log.i(TAG, "showToastErrorMessage: " + error);
-        if (context != null) {
-            view.setVoiceString(context.getString(R.string.voice_button_promt));
+        Log.e(TAG, "onSpeechError: " + error);
+        if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+            weatherView.requestPermission(WeatherContract.View.MICROPHONE_PERMISSION_REQUEST);
         }
-        view.setVoiceListeningAnimationEnabled(false);
+        if (context != null) {
+            weatherView.setVoiceString(context.getString(R.string.voice_button_promt));
+        }
+        weatherView.setVoiceListeningAnimationEnabled(false);
     }
 
     @Override
@@ -122,11 +125,11 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
         ArrayList resultList = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         String bestResult = (String) (resultList != null ? resultList.get(0) : null);
         Log.i(TAG, "onResult: " + bestResult);
-        view.setVoiceString(bestResult);
+        weatherView.setVoiceString(bestResult);
         latestRequestedString = bestResult;
 
         if (weatherDataProvider != null) {
-            view.showLoader(true);
+            weatherView.showLoader(true);
             weatherDataProvider.requestWeatherData(bestResult);
         }
     }
@@ -136,32 +139,33 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
         ArrayList resultList = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         String bestResult = (String) (resultList != null ? resultList.get(0) : null);
         Log.i(TAG, "onPartialResult: " + bestResult);
-        view.setVoiceString(String.format(bestResult + "%s", "..."));
+        weatherView.setVoiceString(String.format(bestResult + "%s", "..."));
     }
 
     @Override
     public void onEvent(int eventType, Bundle params) {
-        Log.i(TAG, "onEvent");
+        Log.i(TAG, "onSpeechEvent");
     }
 
     @Override
     public void onWeatherDataReceived(WeatherData weatherData) {
         Log.i(TAG, "onWeatherDataReceived");
-        view.showLoader(false);
-        view.showNoInternetSnackbar(false);
-        view.setWeatherData(weatherData);
-        view.showWeatherDataViewContainer(true);
+        weatherView.showLoader(false);
+        weatherView.showNoInternetSnackbar(false);
+        weatherView.setWeatherData(weatherData);
+        weatherView.showWeatherDataViewContainer(true);
     }
 
     @Override
     public void onFailure(@WeatherResponseFailureType int failureType) {
         Log.e(TAG, String.valueOf(failureType));
-        view.showLoader(false);
+        weatherView.showLoader(false);
+        weatherView.showWeatherDataViewContainer(false);
         int resId = 0;
         switch (failureType) {
             case NO_INTERNET:
                 resId = R.string.no_internet;
-                view.showNoInternetSnackbar(true);
+                weatherView.showNoInternetSnackbar(true);
                 break;
             case GPS_UNAVAILABLE:
                 resId = R.string.gps_unavailable;
@@ -175,10 +179,13 @@ public class WeatherPresenter implements WeatherContract.Presenter, RecognitionL
             case PLACE_UNRECOGNIZED:
                 resId = R.string.place_unrecognized;
                 break;
+            case LOCATION_PERMISSION_DENIED:
+                resId = R.string.location_permission_denied;
+                weatherView.requestPermission(WeatherContract.View.LOCATION_PERMISSION_REQUEST);
+                break;
         }
-        if (resId != R.string.no_internet) {
-            view.showToastErrorMessage(resId);
-            view.showWeatherDataViewContainer(false);
+        if ((resId != R.string.no_internet) && (resId != R.string.location_permission_denied)) {
+            weatherView.showToastErrorMessage(resId);
         }
     }
 

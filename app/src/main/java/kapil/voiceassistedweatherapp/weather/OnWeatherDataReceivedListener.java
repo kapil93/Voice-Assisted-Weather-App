@@ -10,7 +10,7 @@ import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
  */
 
 public interface OnWeatherDataReceivedListener {
-    @IntDef({NO_INTERNET, GPS_UNAVAILABLE, WIT_AI_NULL_RESPONSE, WEATHER_INTENT_NOT_FOUND, PLACE_UNRECOGNIZED})
+    @IntDef({NO_INTERNET, GPS_UNAVAILABLE, WIT_AI_NULL_RESPONSE, WEATHER_INTENT_NOT_FOUND, PLACE_UNRECOGNIZED, LOCATION_PERMISSION_DENIED})
     @interface WeatherResponseFailureType {
 
     }
@@ -20,6 +20,7 @@ public interface OnWeatherDataReceivedListener {
     int WIT_AI_NULL_RESPONSE = 2;
     int WEATHER_INTENT_NOT_FOUND = 3;
     int PLACE_UNRECOGNIZED = 4;
+    int LOCATION_PERMISSION_DENIED = 5;
 
     void onWeatherDataReceived(WeatherData weatherData);
 
