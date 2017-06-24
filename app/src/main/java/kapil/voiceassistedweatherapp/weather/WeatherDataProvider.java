@@ -99,6 +99,8 @@ public class WeatherDataProvider {
                     throwable.printStackTrace();
                     if (throwable.getMessage().equals(context.getString(R.string.gps_unavailable))) {
                         onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.GPS_UNAVAILABLE);
+                    } else if (throwable.getMessage().equals(context.getString(R.string.location_permission_denied))) {
+                        onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.LOCATION_PERMISSION_DENIED);
                     } else {
                         onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.NO_INTERNET);
                     }

@@ -1,10 +1,14 @@
 package kapil.voiceassistedweatherapp;
 
+import android.Manifest;
 import android.app.ProgressDialog;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -98,6 +102,7 @@ public class WeatherActivity extends AppCompatActivity implements WeatherContrac
 
     private void showViews(boolean show) {
         int visibility = show ? View.VISIBLE : View.GONE;
+
         place.setVisibility(visibility);
         weatherIcon.setVisibility(visibility);
         celsiusSymbol.setVisibility(visibility);
@@ -211,6 +216,27 @@ public class WeatherActivity extends AppCompatActivity implements WeatherContrac
         voiceListeningView.setVoiceListeningCircleAction(rmsDb);
     }
 
+    @Override
+    public void requestPermission(@Permission int permissionType) {
+        String permission = "";
+        int resId = 0;
+        switch (permissionType) {
+            case MICROPHONE_PERMISSION_REQUEST:
+                permission = Manifest.permission.RECORD_AUDIO;
+                resId = R.string.microphone_permission_denied;
+                break;
+            case LOCATION_PERMISSION_REQUEST:
+                permission = Manifest.permission.ACCESS_COARSE_LOCATION;
+                resId = R.string.location_permission_denied;
+                break;
+        }
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+            showToastErrorMessage(resId);
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{permission}, permissionType);
+        }
+    }
+
     /**
      * Sets weather data into appropriate views.
      *
@@ -284,6 +310,20 @@ public class WeatherActivity extends AppCompatActivity implements WeatherContrac
                 break;
         }
         weatherIcon.setImageResource(iconResourceId);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            switch (requestCode) {
+                case MICROPHONE_PERMISSION_REQUEST:
+                    weatherPresenter.triggerSpeechRecognizer();
+                    break;
+                case LOCATION_PERMISSION_REQUEST:
+                    weatherPresenter.retryDataFetch();
+                    break;
+            }
+        }
     }
 
     @Override

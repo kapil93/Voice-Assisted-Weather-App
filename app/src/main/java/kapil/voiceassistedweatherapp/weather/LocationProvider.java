@@ -65,19 +65,19 @@ public class LocationProvider implements GoogleApiClient.ConnectionCallbacks, Go
     public void onConnected(@Nullable Bundle bundle) {
         Log.i(TAG, "onConnected");
 
-        if (ActivityCompat.checkSelfPermission(googleApiClient.getContext(),
-                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Log.i(TAG, "Location Permission Denied");
-            return;
-        }
-        Location location = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
-
-        if (location != null) {
-            locationEmitter.onNext(location);
-            locationEmitter.onComplete();
+        if (ActivityCompat.checkSelfPermission(googleApiClient.getContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "Location Permission Denied");
+            locationEmitter.onError(new Exception(context.getString(R.string.location_permission_denied)));
         } else {
-            Log.e(TAG, "Null Location");
-            locationEmitter.onError(new Exception(context.getString(R.string.gps_unavailable)));
+            Location location = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
+
+            if (location != null) {
+                locationEmitter.onNext(location);
+                locationEmitter.onComplete();
+            } else {
+                Log.e(TAG, "Null Location");
+                locationEmitter.onError(new Exception(context.getString(R.string.gps_unavailable)));
+            }
         }
 
         googleApiClient.disconnect();
