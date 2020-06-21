@@ -24,7 +24,7 @@ public class Location {
     private Double confidence;
     @JsonProperty("type")
     private String type;
-    @JsonProperty("value")
+    @JsonProperty("body")
     private String value;
     @JsonProperty("suggested")
     private Boolean suggested;

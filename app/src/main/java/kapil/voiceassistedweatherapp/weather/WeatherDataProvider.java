@@ -128,11 +128,12 @@ public class WeatherDataProvider {
                 e.printStackTrace();
             }
 
-            if (witAiResponse.getEntities().getIntent() == null) {
-                onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.WEATHER_INTENT_NOT_FOUND);
-            } else if (witAiResponse.getEntities().getIntent().get(0).getValue().equals("weather")) {
-                return true;
-            }
+//            if (witAiResponse.getEntities().getIntent() == null) {
+//                onWeatherDataReceivedListener.onFailure(OnWeatherDataReceivedListener.WEATHER_INTENT_NOT_FOUND);
+//            } else if (witAiResponse.getEntities().getIntent().get(0).getValue().equals("weather")) {
+//                return true;
+//            }
+            return true;
         }
         return false;
     }
