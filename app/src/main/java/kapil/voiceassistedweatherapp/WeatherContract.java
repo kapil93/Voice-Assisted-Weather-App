@@ -1,6 +1,6 @@
 package kapil.voiceassistedweatherapp;
 
-import android.support.annotation.IntDef;
+import androidx.annotation.IntDef;
 
 import kapil.voiceassistedweatherapp.weather.models.weather.WeatherData;
 

@@ -21,7 +21,7 @@ public class Entities {
 
     @JsonProperty("intent")
     private List<Intent> intent = null;
-    @JsonProperty("location")
+    @JsonProperty("wit$location:location")
     private List<Location> location = null;
     @JsonIgnore
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();

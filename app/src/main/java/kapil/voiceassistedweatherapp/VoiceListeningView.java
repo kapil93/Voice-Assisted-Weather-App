@@ -4,11 +4,12 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
+
+import androidx.core.content.ContextCompat;
 
 /**
  * This is a custom view for visual feedback during the SpeechRecognizer is in Listening Mode.
